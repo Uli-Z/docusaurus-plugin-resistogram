@@ -1,15 +1,56 @@
-/* Placeholder for ResistanceTable styles */
-.table {
-  border-collapse: collapse;
+
+.error {
+  color: red;
+  border: 1px solid red;
+  padding: 1rem;
+}
+
+.resistanceTable {
   width: 100%;
+  overflow-x: auto;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
-.th, .td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-
-.th {
-  background-color: #f2f2f2;
+.resistanceTable th,
+.resistanceTable td {
+  padding: 0.5rem;
   text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.specimenDisplay {
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.specimenTrigger {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.specimenChevron {
+  width: 16px;
+  height: 16px;
+}
+
+.specimenContent {
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.specimenItem {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.specimenItem:hover {
+  background-color: #f0f0f0;
 }
