@@ -4,7 +4,7 @@ import { toString } from "mdast-util-to-string";
 export default function remarkResist() {
   return (tree: any) => {
     let resistanceTableUsed = false;
-    const pageText = toString(tree).toLowerCase();
+    const pageText = tree.children.map((c: any) => toString(c)).join('\n\n');
 
     visit(tree, "paragraph", (node: any, i: number, parent: any) => {
       const txt = node.children.map((c: any) => c.value ?? "").join("").trim();
