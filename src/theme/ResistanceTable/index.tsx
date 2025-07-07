@@ -164,7 +164,7 @@ const SpecimenSwitcher = ({
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button className={styles.specimenTrigger}>
-          <span className="flex items-center gap-1">
+          <span className={styles.specimenTriggerInner}>
             <span>Specimen: {selected}</span>
             <ChevronDownIcon className={styles.specimenChevron} aria-hidden />
           </span>
@@ -193,18 +193,10 @@ const Tip = ({ label, children }: { label: string; children: React.ReactNode }) 
     <RadixTooltip.Portal>
       <RadixTooltip.Content
         sideOffset={4}
-        style={{
-          backgroundColor: 'rgba(60,60,60,0.9)',
-          color: '#fff',
-          padding: '4px 8px',
-          borderRadius: 4,
-          fontSize: '0.75rem',
-          whiteSpace: 'nowrap',
-          zIndex: 100,
-        }}
+        className={styles.tooltipContent}
       >
         {label}
-        <RadixTooltip.Arrow width={8} height={4} style={{ fill: 'rgba(60,60,60,0.9)' }} />
+        <RadixTooltip.Arrow width={8} height={4} className={styles.tooltipArrow} />
       </RadixTooltip.Content>
     </RadixTooltip.Portal>
   </RadixTooltip.Root>
