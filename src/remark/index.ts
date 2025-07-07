@@ -29,7 +29,7 @@ export default function remarkResist() {
           {
             type: "mdxJsxAttribute",
             name: "pageText",
-            value: pageText,
+            value: JSON.stringify(pageText),
           },
         ],
         children: [],
