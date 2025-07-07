@@ -207,11 +207,12 @@ const Tip = ({ label, children }: { label: string; children: React.ReactNode }) 
 // ============================================================================
 export default function ResistanceTable({
   params: paramString,
-  pageText,
+  pageText: pageTextJson,
 }: {
   params: string;
   pageText: string;
 }) {
+  const pageText = JSON.parse(pageTextJson);
   const containerRef = useRef<HTMLDivElement>(null);
   const fullRef = useRef<HTMLTableElement>(null);
   const compactRef = useRef<HTMLTableElement>(null);
