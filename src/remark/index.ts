@@ -35,7 +35,7 @@ export default function remarkResist() {
         children: [],
       });
 
-      return [visit.SKIP, i];
+      
     });
 
     if (resistanceTableUsed) {
