@@ -311,19 +311,6 @@ export default function ResistanceTable({
       ? { backgroundColor: '#f2f2f2' }
       : { backgroundColor: pctToColor(pct) };
   const hlStyle = { filter: 'brightness(90%)' };
-  const stickyHeader = {
-    position: 'sticky',
-    top: 0,
-    background: '#fff',
-    zIndex: 3,
-  } as const;
-  const stickyFirstCol = {
-    position: 'sticky',
-    left: 0,
-    background: '#fff',
-    zIndex: 2,
-  } as const;
-  const stickyCorner = { ...stickyHeader, left: 0 } as const;
   const abxColBase = { whiteSpace: 'nowrap', width: '1%' } as const;
 
   // ---------------- table renderer ----------------
@@ -353,12 +340,11 @@ export default function ResistanceTable({
         >
           <thead>
             <tr>
-              <th style={{ ...abxColBase, ...stickyCorner }}></th>
+              <th style={{ ...abxColBase }}></th>
               {headers.map((h, colIdx) => (
                 <th
                   key={colIdx}
                   style={{
-                    ...stickyHeader,
                     cursor: h.title ? 'help' : 'default',
                     ...(interactive && hoverCol === colIdx ? hlStyle : {}),
                   }}
@@ -386,7 +372,6 @@ export default function ResistanceTable({
                 <td
                   style={{
                     ...abxColBase,
-                    ...stickyFirstCol,
                     ...(interactive && hoverRow === rowIdx ? hlStyle : {}),
                   }}
                   onMouseEnter={
