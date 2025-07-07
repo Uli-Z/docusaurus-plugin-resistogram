@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useLayoutEffect,
-  useEffect,
-  useRef,
-} from 'react';
+import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
 import { usePluginData } from '@docusaurus/useGlobalData';
 import * as RadixTooltip from '@radix-ui/react-tooltip';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -11,86 +6,87 @@ import { ChevronDownIcon } from '@radix-ui/react-icons';
 import styles from './styles.module.css';
 
 // ============================================================================
-// Helper-Funktionen zur Datenverarbeitung
+// Helper functions for data processing
 // ============================================================================
 
-/**
- * Parst einen String von Parametern (z.B. "abx=auto org=all")
- * in ein Schlüssel-Wert-Objekt.
- * @param {string} s Der zu parsende String.
- * @returns {Object} Ein Objekt mit den geparsten Parametern.
- */
-const parseParams = (s) =>
-  s.trim().split(/\s+/).reduce((acc, part) => {
+/** Parse a space‑separated parameter string (e.g. "abx=auto org=all") */
+const parseParams = (s: string): Record<string, string> =>
+  s.trim().split(/\s+/).reduce((acc: Record<string, string>, part) => {
     const [k, v] = part.split('=');
     acc[k] = v;
     return acc;
   }, {});
 
-/**
- * Löst eine Liste von Antibiotika- oder Organismus-IDs basierend auf einem Parameter auf.
- * @param {string} param Der Parameterwert ('auto', 'all' oder eine kommaseparierte Liste).
- * @param {string[]} allIds Eine Liste aller verfügbaren IDs für diesen Typ.
- * @param {Object} synMap Eine Map von Synonymen zu IDs.
- * @param {string} pageText Der gesamte Text der aktuellen Seite (für den 'auto'-Modus).
- * @returns {string[]} Eine eindeutige Liste der aufgelösten IDs.
- */
-const resolveIds = (param, allIds, synMap, pageText) => {
-  // Debug-Ausgabe für die übergebene Synonym-Map
-  console.log(`[resolveIds] Using synMap for param "${param}":`, synMap);
+/** Escape text so it can be inserted literally into a RegExp. */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore – older TS libs may lack RegExp.escape
+const escapeRegExp = (str: string): string =>
+  typeof RegExp.escape === 'function'
+    ? RegExp.escape(str)
+    : str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // Case 1: 'auto' - Detect synonyms from the page text
+/**
+ * Resolve a list of antibiotic / organism IDs from a user parameter.
+ * Modes: "auto" | "all" | comma‑separated list. Matching is
+ * case‑insensitive for IDs and synonyms.
+ */
+const resolveIds = (
+  param: string | undefined,
+  allIds: string[],
+  synMap: Record<string, string>,
+  pageText: string,
+): string[] => {
+  const synLower: Record<string, string> = Object.fromEntries(
+    Object.entries(synMap).map(([k, v]) => [k.toLowerCase(), v]),
+  );
+
+  // ---------- AUTO mode ----------
   if (param === 'auto') {
-    const text = pageText.toLowerCase();
-    const detected = Object.keys(synMap)
+    const lower = pageText.toLowerCase();
+    const wordSet = new Set(lower.match(/[a-z0-9]+/g) || []);
+
+    const detected = Object.keys(synLower)
       .filter((syn) => {
-        // Erstellt einen regulären Ausdruck, um das Synonym als ganzes Wort zu finden.
-        // Spezielle Regex-Zeichen im Synonym werden escaped.
-        const searchSyn = syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`\\b${searchSyn}\\b`, 'i');
-        return regex.test(text);
+        if (syn.includes(' ')) {
+          // multi‑word synonym → regex with word boundaries
+          return new RegExp(`\\b${escapeRegExp(syn)}\\b`, 'i').test(pageText);
+        }
+        // single word synonym → token lookup (fast, robust)
+        return wordSet.has(syn);
       })
-      .map((syn) => synMap[syn]);
-    // Gibt eine eindeutige Liste der erkannten IDs zurück.
+      .map((syn) => synLower[syn]);
+
     return [...new Set(detected)];
   }
 
-  // Fall 2: 'all' oder leer -> Gibt alle verfügbaren IDs zurück.
-  if (!param || param === 'all') {
-    return allIds;
-  }
+  // ---------- ALL mode ----------
+  if (!param || param === 'all') return allIds;
 
-  // Fall 3: Spezifische Liste von IDs/Synonymen.
+  // ---------- explicit CSV ----------
   return Array.from(
     new Set(
       param
         .split(',')
-        .map((t) => t.trim().toLowerCase())
+        .map((t) => t.trim())
         .filter(Boolean)
         .map((t) => {
-          // Prüft, ob der Begriff eine direkte ID ist (Groß-/Kleinschreibung ignorieren).
-          const upperT = t.toUpperCase();
-          if (allIds.includes(upperT)) {
-            return upperT;
-          }
-          // Andernfalls prüfen, ob es ein Synonym ist.
-          return synMap[t] || null;
+          const upper = t.toUpperCase();
+          if (allIds.includes(upper)) return upper;
+          return synLower[t.toLowerCase()] ?? null;
         })
-        .filter(Boolean) // Filtert alle null-Werte von nicht gefundenen Übereinstimmungen heraus.
-    )
-  );
+        .filter(Boolean),
+    ),
+  ) as string[];
 };
 
-/**
- * Erstellt eine verschachtelte Map (Matrix) der Resistenzdaten für einen schnellen Zugriff.
- * @param {string[]} abxIds Die zu inkludierenden Antibiotika-IDs.
- * @param {string[]} orgIds Die zu inkludierenden Organismus-IDs.
- * @param {string} specimen Das ausgewählte Probenmaterial ('auto' oder ein spezifischer Typ).
- * @param {Object[]} rows Die rohen Resistenzdaten.
- * @returns {Map<string, Map<string, Object>>} Eine Map, die abxId -> orgId -> Resistenz-Datenpunkt abbildet.
- */
-const buildMatrix = (abxIds, orgIds, specimen, rows) => {
-  const m = new Map();
+/** Build a nested Map matrix of resistance data for quick lookup. */
+const buildMatrix = (
+  abxIds: string[],
+  orgIds: string[],
+  specimen: string,
+  rows: any[],
+) => {
+  const m = new Map<string, Map<string, any>>();
   abxIds.forEach((id) => m.set(id, new Map()));
   rows
     .filter(
@@ -99,20 +95,18 @@ const buildMatrix = (abxIds, orgIds, specimen, rows) => {
         orgIds.includes(r.organism_id) &&
         (!specimen || specimen === 'auto' || r.specimen === specimen),
     )
-    .forEach((r) => m.get(r.antibiotic_id).set(r.organism_id, r));
+    .forEach((r) => m.get(r.antibiotic_id)!.set(r.organism_id, r));
   return m;
 };
 
-/**
- * Formatiert die Datenmatrix in ein für die Tabellenanzeige geeignetes Format.
- * @param {Map} matrix Die von buildMatrix erstellte Datenmatrix.
- * @param {string[]} abxIds Die Liste der Antibiotika-IDs.
- * @param {string[]} orgIds Die Liste der Organismus-IDs.
- * @param {Map} id2Main Map von ID zu Haupt-Synonym/Langname.
- * @param {Map} id2Short Map von ID zu Kurzname.
- * @returns {{data: Object[], orgs: Object[]}} Die formatierten Daten für die Tabelle.
- */
-const formatMatrix = (matrix, abxIds, orgIds, id2Main, id2Short) => {
+/** Convert matrix into table‑friendly structures. */
+const formatMatrix = (
+  matrix: Map<string, Map<string, any>>,
+  abxIds: string[],
+  orgIds: string[],
+  id2Main: Map<string, string>,
+  id2Short: Map<string, string>,
+) => {
   const orgs = orgIds.map((id) => ({
     id,
     name: id2Main.get(id) ?? id,
@@ -120,77 +114,71 @@ const formatMatrix = (matrix, abxIds, orgIds, id2Main, id2Short) => {
   }));
 
   const data = abxIds.map((abx) => {
-    const longName = id2Main.get(abx) ?? abx;
-    const shortName = id2Short.get(abx) ?? longName;
-    const row = { antibioticLong: longName, antibioticShort: shortName };
-
+    const row: Record<string, any> = {
+      antibioticLong: id2Main.get(abx) ?? abx,
+      antibioticShort: id2Short.get(abx) ?? id2Main.get(abx) ?? abx,
+    };
     orgs.forEach((o) => {
       const cell = matrix.get(abx)?.get(o.id);
-      if (cell) {
-        row[o.name] = {
-          text: `${cell.resistance_pct}% (${cell.n_isolates})`,
-          pct: cell.resistance_pct,
-        };
-      } else {
-        row[o.name] = { text: '—', pct: undefined };
-      }
+      row[o.name] = cell
+        ? { text: `${cell.resistance_pct}% (${cell.n_isolates})`, pct: cell.resistance_pct }
+        : { text: '—', pct: undefined };
     });
     return row;
   });
-
   return { data, orgs };
 };
 
-/**
- * Ermittelt die verfügbaren Probenmaterialien (Specimens) basierend auf den ausgewählten IDs.
- * @param {string[]} abxIds Die ausgewählten Antibiotika-IDs.
- * @param {string[]} orgIds Die ausgewählten Organismus-IDs.
- * @param {Object[]} rows Die rohen Resistenzdaten.
- * @returns {string[]} Eine Liste der verfügbaren Probenmaterialien.
- */
-const getAvailableSpecimens = (abxIds, orgIds, rows) => {
-  const specimens = new Set();
+/** Get all specimen types available for current ID selection. */
+const getAvailableSpecimens = (
+  abxIds: string[],
+  orgIds: string[],
+  rows: any[],
+) => {
+  const s = new Set<string>();
   rows.forEach((r) => {
     if (abxIds.includes(r.antibiotic_id) && orgIds.includes(r.organism_id) && r.specimen) {
-      specimens.add(r.specimen);
+      s.add(r.specimen);
     }
   });
-  return ['auto', ...Array.from(specimens).sort()];
+  return ['auto', ...Array.from(s).sort()];
 };
 
 // ============================================================================
-// UI-Komponenten
+// UI components
 // ============================================================================
 
-/**
- * Eine Dropdown-Komponente zur Auswahl des Probenmaterials (Specimen).
- */
-const SpecimenSwitcher = ({ available, selected, onSelect }) => {
-  // Wenn nur eine Option verfügbar ist, zeige nur Text an.
+const SpecimenSwitcher = ({
+  available,
+  selected,
+  onSelect,
+}: {
+  available: string[];
+  selected: string;
+  onSelect: (s: string) => void;
+}) => {
   if (available.length <= 1) {
     return <div className={styles.specimenDisplay}>Specimen: {selected}</div>;
   }
-
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button className={styles.specimenTrigger}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span className="flex items-center gap-1">
             <span>Specimen: {selected}</span>
             <ChevronDownIcon className={styles.specimenChevron} aria-hidden />
           </span>
         </button>
       </DropdownMenu.Trigger>
-
       <DropdownMenu.Portal>
         <DropdownMenu.Content className={styles.specimenContent} sideOffset={5}>
-          {available.map((specimen) => (
+          {available.map((s) => (
             <DropdownMenu.Item
-              key={specimen}
+              key={s}
               className={styles.specimenItem}
-              onSelect={() => onSelect(specimen)}
+              onSelect={() => onSelect(s)}
             >
-              {specimen}
+              {s}
             </DropdownMenu.Item>
           ))}
         </DropdownMenu.Content>
@@ -199,10 +187,7 @@ const SpecimenSwitcher = ({ available, selected, onSelect }) => {
   );
 };
 
-/**
- * Eine Tooltip-Wrapper-Komponente.
- */
-const Tip = ({ label, children }) => (
+const Tip = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <RadixTooltip.Root delayDuration={0}>
     <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
     <RadixTooltip.Portal>
@@ -226,59 +211,56 @@ const Tip = ({ label, children }) => (
 );
 
 // ============================================================================
-// Hauptkomponente: ResistanceTable
+// Main component
 // ============================================================================
-export default function ResistanceTable({ params: paramString, pageText }) {
-  // Refs für die verschiedenen Tabellen-Layouts zur Breitenmessung.
-  const containerRef = useRef(null);
-  const fullRef = useRef(null);
-  const compactRef = useRef(null);
-  const superRef = useRef(null);
+export default function ResistanceTable({
+  params: paramString,
+  pageText,
+}: {
+  params: string;
+  pageText: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const fullRef = useRef<HTMLTableElement>(null);
+  const compactRef = useRef<HTMLTableElement>(null);
+  const superRef = useRef<HTMLTableElement>(null);
 
-  // State für das dynamische Layout und Interaktionen.
-  const [display, setDisplay] = useState('full'); // 'full', 'compact', oder 'superCompact'
-  const [ready, setReady] = useState(false); // Wird true, nachdem die unsichtbaren Tabellen gerendert wurden.
-  const [hoverRow, setHoverRow] = useState(null);
-  const [hoverCol, setHoverCol] = useState(null);
+  const [display, setDisplay] =
+    useState<'full' | 'compact' | 'superCompact'>('full');
+  const [ready, setReady] = useState(false);
+  const [hoverRow, setHoverRow] = useState<number | null>(null);
+  const [hoverCol, setHoverCol] = useState<number | null>(null);
   const [selectedSpecimen, setSelectedSpecimen] = useState('auto');
 
-  // Lädt die globalen Daten, die vom Plugin bereitgestellt werden.
-  const gd = usePluginData('docusaurus-plugin-resistogram', 'example-resistogram');
+  const gd: any = usePluginData(
+    'docusaurus-plugin-resistogram',
+    'example-resistogram',
+  );
   if (!gd)
-    return <div className={styles.error}>Fehler: Plugin-Daten nicht gefunden.</div>;
+    return <div className={styles.error}>Error: plugin data not found.</div>;
 
-  // Konvertiert die Datenobjekte in Maps für einen einfacheren Zugriff.
-  const abxSyn2Id = new Map(Object.entries(gd.abxSyn2Id));
-  const orgSyn2Id = new Map(Object.entries(gd.orgSyn2Id));
-  const id2Main = new Map(Object.entries(gd.id2MainSyn));
-  const id2Short = new Map(Object.entries(gd.id2ShortName));
+  const id2Main = new Map<string, string>(Object.entries(gd.id2MainSyn));
+  const id2Short = new Map<string, string>(Object.entries(gd.id2ShortName));
 
-  // Verarbeitet die Eingabeparameter und löst die IDs auf.
   const p = parseParams(paramString);
   const abxIds = resolveIds(p.abx, gd.allAbxIds, gd.abxSyn2Id, pageText);
   const orgIds = resolveIds(p.org, gd.allOrgIds, gd.orgSyn2Id, pageText);
 
-  // Debugging-Ausgabe in der Browser-Konsole.
-  console.log('ResistanceTable Debug:', {
-    params: p,
-    resolvedAbx: abxIds,
-    resolvedOrg: orgIds,
-  });
   
-  // Ermittelt die verfügbaren Probenmaterialien basierend auf den ausgewählten IDs.
-  const availableSpecimens = getAvailableSpecimens(abxIds, orgIds, gd.resistanceData);
 
-  // Setzt das anfängliche Probenmaterial basierend auf den Parametern.
+  const availableSpecimens = getAvailableSpecimens(
+    abxIds,
+    orgIds,
+    gd.resistanceData,
+  );
+
   useEffect(() => {
-    const initialSpecimen = p.specimen || 'auto';
-    if (availableSpecimens.includes(initialSpecimen)) {
-      setSelectedSpecimen(initialSpecimen);
-    } else if (availableSpecimens.length > 0) {
+    const init = p.specimen || 'auto';
+    if (availableSpecimens.includes(init)) setSelectedSpecimen(init);
+    else if (availableSpecimens.length)
       setSelectedSpecimen(availableSpecimens[0]);
-    }
   }, [paramString, gd.resistanceData]);
 
-  // Baut und formatiert die Datenmatrix für die Anzeige.
   const { data, orgs } = formatMatrix(
     buildMatrix(abxIds, orgIds, selectedSpecimen, gd.resistanceData),
     abxIds,
@@ -287,25 +269,28 @@ export default function ResistanceTable({ params: paramString, pageText }) {
     id2Short,
   );
 
-  // ---------- Logik für das dynamische Layout ----------
-  // Wählt den besten Anzeigemodus basierend auf der verfügbaren Breite.
+  // ---------------- responsive layout ----------------
   const chooseMode = () => {
     const w = containerRef.current?.offsetWidth ?? 0;
     if (!w) return;
-    if (fullRef.current?.scrollWidth <= w) setDisplay('full');
-    else if (compactRef.current?.scrollWidth <= w) setDisplay('compact');
+    if (fullRef.current && fullRef.current.scrollWidth <= w) setDisplay('full');
+    else if (compactRef.current && compactRef.current.scrollWidth <= w)
+      setDisplay('compact');
     else setDisplay('superCompact');
   };
 
-  // Führt chooseMode aus, nachdem die "Geister"-Tabellen gerendert wurden.
   useLayoutEffect(() => {
-    if (!ready && fullRef.current && compactRef.current && superRef.current) {
+    if (
+      !ready &&
+      fullRef.current &&
+      compactRef.current &&
+      superRef.current
+    ) {
       setReady(true);
       chooseMode();
     }
   }, [ready]);
 
-  // Beobachtet Größenänderungen des Containers, um das Layout anzupassen.
   useEffect(() => {
     if (!ready || !containerRef.current) return;
     const ro = new ResizeObserver(chooseMode);
@@ -313,24 +298,40 @@ export default function ResistanceTable({ params: paramString, pageText }) {
     return () => ro.disconnect();
   }, [ready]);
 
-  // Zeigt eine Fehlermeldung an, wenn keine Daten gefunden wurden.
   if (!data.length)
-    return <div className={styles.error}>Keine passenden Resistenzdaten gefunden.</div>;
+    return (
+      <div className={styles.error}>No matching resistance data found.</div>
+    );
 
-  // ---------- Styling-Objekte für die Tabelle ----------
-  const pctToColor = (pct) => `hsl(${Math.round((pct / 100) * 120)}, 60%, 85%)`;
-  const cellStyle = (pct) =>
+  // ---------------- styling helpers ----------------
+  const pctToColor = (pct: number) =>
+    `hsl(${Math.round((pct / 100) * 120)}, 60%, 85%)`;
+  const cellStyle = (pct: number | undefined) =>
     pct === undefined
       ? { backgroundColor: '#f2f2f2' }
       : { backgroundColor: pctToColor(pct) };
   const hlStyle = { filter: 'brightness(90%)' };
-  const stickyHeader = { position: 'sticky', top: 0, background: '#fff', zIndex: 3 };
-  const stickyFirstCol = { position: 'sticky', left: 0, background: '#fff', zIndex: 2 };
-  const stickyCorner = { ...stickyHeader, left: 0 };
-  const abxColBase = { whiteSpace: 'nowrap', width: '1%' };
+  const stickyHeader = {
+    position: 'sticky',
+    top: 0,
+    background: '#fff',
+    zIndex: 3,
+  } as const;
+  const stickyFirstCol = {
+    position: 'sticky',
+    left: 0,
+    background: '#fff',
+    zIndex: 2,
+  } as const;
+  const stickyCorner = { ...stickyHeader, left: 0 } as const;
+  const abxColBase = { whiteSpace: 'nowrap', width: '1%' } as const;
 
-  // ---------- Render-Helfer für die Tabelle ----------
-  const renderTable = (mode, ref, ghost = false) => {
+  // ---------------- table renderer ----------------
+  const renderTable = (
+    mode: 'full' | 'compact' | 'superCompact',
+    ref: React.RefObject<HTMLTableElement> | null,
+    ghost = false,
+  ) => {
     const interactive = !ghost;
     const headers = orgs.map((o, i) =>
       mode === 'superCompact'
@@ -339,7 +340,9 @@ export default function ResistanceTable({ params: paramString, pageText }) {
         ? { text: o.short, title: o.name }
         : { text: o.name, title: undefined },
     );
-    const ghostStyle = ghost ? { visibility: 'hidden', height: 0, overflow: 'hidden' } : {};
+    const ghostStyle = ghost
+      ? { visibility: 'hidden', height: 0, overflow: 'hidden' }
+      : {};
 
     return (
       <div style={ghostStyle}>
@@ -359,8 +362,12 @@ export default function ResistanceTable({ params: paramString, pageText }) {
                     cursor: h.title ? 'help' : 'default',
                     ...(interactive && hoverCol === colIdx ? hlStyle : {}),
                   }}
-                  onMouseEnter={interactive ? () => setHoverCol(colIdx) : undefined}
-                  onMouseLeave={interactive ? () => setHoverCol(null) : undefined}
+                  onMouseEnter={
+                    interactive ? () => setHoverCol(colIdx) : undefined
+                  }
+                  onMouseLeave={
+                    interactive ? () => setHoverCol(null) : undefined
+                  }
                 >
                   {h.title ? (
                     <Tip label={h.title}>
@@ -382,8 +389,12 @@ export default function ResistanceTable({ params: paramString, pageText }) {
                     ...stickyFirstCol,
                     ...(interactive && hoverRow === rowIdx ? hlStyle : {}),
                   }}
-                  onMouseEnter={interactive ? () => setHoverRow(rowIdx) : undefined}
-                  onMouseLeave={interactive ? () => setHoverRow(null) : undefined}
+                  onMouseEnter={
+                    interactive ? () => setHoverRow(rowIdx) : undefined
+                  }
+                  onMouseLeave={
+                    interactive ? () => setHoverRow(null) : undefined
+                  }
                 >
                   {mode === 'full' ? (
                     row.antibioticLong
@@ -395,11 +406,16 @@ export default function ResistanceTable({ params: paramString, pageText }) {
                 </td>
                 {orgs.map((o, colIdx) => {
                   const cell = row[o.name];
-                  const highlight = interactive && (hoverRow === rowIdx || hoverCol === colIdx);
+                  const highlight =
+                    interactive &&
+                    (hoverRow === rowIdx || hoverCol === colIdx);
                   return (
                     <td
                       key={o.id}
-                      style={{ ...cellStyle(cell?.pct), ...(highlight ? hlStyle : {}) }}
+                      style={{
+                        ...cellStyle(cell?.pct),
+                        ...(highlight ? hlStyle : {}),
+                      }}
                       onMouseEnter={
                         interactive
                           ? () => {
@@ -429,7 +445,7 @@ export default function ResistanceTable({ params: paramString, pageText }) {
     );
   };
 
-  // ---------- JSX-Struktur der Komponente ----------
+  // ---------------- JSX ----------------
   return (
     <RadixTooltip.Provider delayDuration={0}>
       <div ref={containerRef}>
@@ -438,11 +454,11 @@ export default function ResistanceTable({ params: paramString, pageText }) {
           selected={selectedSpecimen}
           onSelect={setSelectedSpecimen}
         />
-        {/* Rendert die Tabellen unsichtbar, um ihre Breite zu messen. */}
+        {/* ghost tables for width measurement */}
         {renderTable('full', fullRef, true)}
         {renderTable('compact', compactRef, true)}
         {renderTable('superCompact', superRef, true)}
-        {/* Rendert die sichtbare Tabelle, sobald der Anzeigemodus bestimmt ist. */}
+        {/* visible table */}
         {ready && renderTable(display, null, false)}
       </div>
     </RadixTooltip.Provider>
