@@ -148,17 +148,6 @@ const config: Config = {
   } satisfies Preset.ThemeConfig,
 
   plugins: [
-    async function myPlugin(context, options) {
-      return {
-        name: "docusaurus-tailwindcss",
-        configurePostCss(postcssOptions) {
-          // Appends Tailwind CSS and AutoPrefixer.
-          postcssOptions.plugins.push(require("tailwindcss"));
-          postcssOptions.plugins.push(require("autoprefixer"));
-          return postcssOptions;
-        },
-      };
-    },
     [
       '../src/index.ts',
       {
