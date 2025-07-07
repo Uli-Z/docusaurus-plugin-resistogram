@@ -1,0 +1,47 @@
+{
+  "name": "docusaurus-plugin-resistogram",
+  "version": "0.1.0",
+  "description": "%%RESIST …%% Plugin for Docusaurus (CSV-driven resistograms)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+
+  "peerDependencies": {
+    "@docusaurus/core": "^3",
+    "react": "^18"
+  },
+
+  "devDependencies": {
+    "@docusaurus/types": "^3",
+    "@docusaurus/mdx-loader": "^3",
+    "tsup": "^8",
+    "typescript": "^5"
+  },
+
+  "dependencies": {
+    "@radix-ui/react-dropdown-menu": "^2",
+    "@radix-ui/react-tooltip": "^1",
+    "csv-parse": "^5",
+    "escape-string-regexp": "^5",
+    "fast-glob": "^3",
+    "gray-matter": "^4",
+    "unist-util-visit": "^5"
+  },
+
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --out-dir dist",
+    "dev":   "tsup src/index.ts --watch",
+    "prepare": "npm run build",
+    "clean": "rm -rf dist"
+  },
+
+  "files": ["dist"],
+  "resolutions": {
+    "react-dom": "18.3.1"
+  }
+}

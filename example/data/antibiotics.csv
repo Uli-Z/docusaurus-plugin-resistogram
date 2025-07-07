@@ -1,0 +1,14 @@
+id,short_name,full_name,synonyms
+PEN,Pen,Penicillin,Penicillins
+AMX,Amx,Amoxicillin,Amoxicillin
+PIP,Pip,Piperacillin,Piperacillin
+AMP,Amp,Ampicillin,Ampicillin
+CZO,Czo,Cefazolin,Cefazolin
+CRO,Cro,Ceftriaxone,Ceftriaxone
+FEP,Fep,Cefepime,Cefepime
+AZM,Azm,Azithromycin,Azithromycin
+CLR,Clr,Clarithromycin,Clarithromycin
+CIP,Cip,Ciprofloxacin,Ciprofloxacin
+LVX,Lvx,Levofloxacin,Levofloxacin
+DOX,Dox,Doxycycline,Doxycycline
+TET,Tet,Tetracycline,Tetracycline
