@@ -1,6 +1,7 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import remarkResist from '../src/remark';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -42,6 +43,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
+          remarkPlugins: [remarkResist],
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
@@ -49,6 +51,7 @@ const config: Config = {
         },
         blog: {
           showReadingTime: true,
+          remarkPlugins: [remarkResist],
           feedOptions: {
             type: ['rss', 'atom'],
             xslt: true,
@@ -143,6 +146,16 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
+
+  plugins: [
+    [
+      '../src/index.ts',
+      {
+        id: 'example-resistogram',
+        dataDir: 'data',
+      },
+    ],
+  ],
 };
 
 export default config;
