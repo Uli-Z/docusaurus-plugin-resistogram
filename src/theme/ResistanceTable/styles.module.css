@@ -20,6 +20,11 @@
   margin-bottom: 0;
 }
 
+.tableContainer {
+  display: inline-block;
+  max-width: 100%;
+}
+
 .resistanceTable th,
 .resistanceTable td {
   padding: 0.5rem;
