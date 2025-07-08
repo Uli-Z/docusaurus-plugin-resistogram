@@ -206,6 +206,9 @@ export default function ResistanceTable({
   const compactRef = useRef<HTMLTableElement>(null);
   const superRef = useRef<HTMLTableElement>(null);
 
+  const p = parseParams(paramString);
+  const [showEmpty, setShowEmpty] = useState(p.showEmpty === 'true');
+
   const [display, setDisplay] =
     useState<'full' | 'compact' | 'superCompact'>('full');
   const [ready, setReady] = useState(false);
@@ -233,6 +236,10 @@ export default function ResistanceTable({
     }
   }, [gd?.sources]);
 
+  useEffect(() => {
+    setShowEmpty(p.showEmpty === 'true');
+  }, [paramString]);
+
   useLayoutEffect(() => {
     if (fullRef.current && compactRef.current && superRef.current) {
       chooseMode();
@@ -240,7 +247,7 @@ export default function ResistanceTable({
         setReady(true);
       }
     }
-  }, [selectedSource, ready]);
+  }, [selectedSource, ready, showEmpty]);
 
   useEffect(() => {
     if (!ready || !containerRef.current) return;
@@ -260,7 +267,6 @@ export default function ResistanceTable({
   const id2Main = new Map<string, string>(Object.entries(gd.id2MainSyn));
   const id2Short = new Map<string, string>(Object.entries(gd.id2ShortName));
 
-  const p = parseParams(paramString);
   const abxIds = resolveIds(p.abx, gd.allAbxIds, gd.abxSyn2Id, pageText);
   const orgIds = resolveIds(p.org, gd.allOrgIds, gd.orgSyn2Id, pageText);
   
@@ -270,7 +276,7 @@ export default function ResistanceTable({
     return <div className={styles.error}>No data found for source: {selectedSource.short_name}</div>;
   }
 
-  // ---------------- layout logic ----------------
+  // ---------------- layout and filtering logic ----------------
   let rowIds = abxIds;
   let colIds = orgIds;
   let rowsAreAbx = true;
@@ -288,10 +294,25 @@ export default function ResistanceTable({
     }
   }
 
+  const matrix = buildMatrix(rowIds, colIds, rowsAreAbx, resistanceData);
+
+  const emptyRowIds = rowIds.filter(id => matrix.get(id)?.size === 0);
+  const nonEmptyColIds = new Set<string>();
+  matrix.forEach(colMap => {
+    colMap.forEach((_value, colId) => nonEmptyColIds.add(colId));
+  });
+  const emptyColIds = colIds.filter(id => !nonEmptyColIds.has(id));
+
+  const hiddenRowCount = emptyRowIds.length;
+  const hiddenColCount = emptyColIds.length;
+
+  const finalRowIds = showEmpty ? rowIds : rowIds.filter(id => !emptyRowIds.includes(id));
+  const finalColIds = showEmpty ? colIds : colIds.filter(id => !emptyColIds.includes(id));
+
   const { data, cols } = formatMatrix(
-    buildMatrix(rowIds, colIds, rowsAreAbx, resistanceData),
-    rowIds,
-    colIds,
+    matrix,
+    finalRowIds,
+    finalColIds,
     id2Main,
     id2Short,
   );
@@ -311,6 +332,30 @@ export default function ResistanceTable({
       : { backgroundColor: pctToColor(pct) };
   const hlStyle = { filter: 'brightness(90%)' };
   const abxColBase = { whiteSpace: 'nowrap', width: '1%' } as const;
+
+  // ---------------- render helpers ----------------
+  const renderHiddenCount = () => {
+    const rowLabel = rowsAreAbx ? 'antibiotic' : 'organism';
+    const colLabel = rowsAreAbx ? 'organism' : 'antibiotic';
+    const parts = [];
+    if (hiddenRowCount > 0) {
+      parts.push(`${hiddenRowCount} ${rowLabel}${hiddenRowCount > 1 ? 's' : ''}`);
+    }
+    if (hiddenColCount > 0) {
+      parts.push(`${hiddenColCount} ${colLabel}${hiddenColCount > 1 ? 's' : ''}`);
+    }
+    if (parts.length === 0) return null;
+
+    const text = showEmpty ? ' with no data' : ' hidden';
+    const linkText = showEmpty ? 'hide' : 'show';
+
+    return (
+      <div>
+        {parts.join(' and ')}
+        {text} (<a href="#" onClick={(e) => { e.preventDefault(); setShowEmpty(!showEmpty); }}>{linkText}</a>)
+      </div>
+    );
+  };
 
   // ---------------- table renderer ----------------
   const renderTable = (
@@ -454,6 +499,7 @@ export default function ResistanceTable({
               </div>
             )}
             <div className={styles.sourceInfo}>
+              {renderHiddenCount()}
               Source: <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">{selectedSource.long_name}</a>
             </div>
           </div>
