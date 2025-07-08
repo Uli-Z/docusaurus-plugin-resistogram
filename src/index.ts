@@ -1,6 +1,6 @@
 import type { LoadContext, Plugin } from "@docusaurus/types";
 import { join } from "path";
-import { loadCsv, mkSynMap } from "./data/csv";
+import { loadData, mkSynMap } from "./data";
 
 interface Opts {
   dataDir?: string;
@@ -18,8 +18,8 @@ export default function pluginResist(
   const { siteDir } = ctx;
   const dataDir = opts.dataDir ?? "data";
   const files = {
-    antibiotics: opts.files?.antibiotics ?? "antibiotics.csv",
-    organisms: opts.files?.organisms ?? "organisms.csv",
+    antibiotics: opts.files?.antibiotics ?? "antibiotics.json",
+    organisms: opts.files?.organisms ?? "organisms.json",
     resistance: opts.files?.resistance ?? "resistance.csv",
   };
 
@@ -27,11 +27,7 @@ export default function pluginResist(
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const [abx, org, res] = await loadCsv(join(siteDir, dataDir), [
-        files.antibiotics,
-        files.organisms,
-        files.resistance,
-      ]);
+      const [abx, org, res] = await loadData(join(siteDir, dataDir), files);
 
       const abxSyn2Id = mkSynMap(abx);
       const orgSyn2Id = mkSynMap(org);
@@ -43,7 +39,7 @@ export default function pluginResist(
           new Map(
             [...abx, ...org].map((r: any) => [
               r.id,
-              r.full_name ?? r.synonyms.split("|")[0],
+              r.full_name ?? r.name ?? r.synonyms[0],
             ])
           )
         ),
