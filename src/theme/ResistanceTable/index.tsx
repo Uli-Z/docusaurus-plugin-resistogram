@@ -81,50 +81,55 @@ const resolveIds = (
 
 /** Build a nested Map matrix of resistance data for quick lookup. */
 const buildMatrix = (
-  abxIds: string[],
-  orgIds: string[],
-  rows: any[],
+  rowIds: string[],
+  colIds: string[],
+  rowsAreAbx: boolean,
+  resistanceData: any[],
 ) => {
   const m = new Map<string, Map<string, any>>();
-  abxIds.forEach((id) => m.set(id, new Map()));
-  rows
-    .filter(
-      (r) =>
-        abxIds.includes(r.antibiotic_id) &&
-        orgIds.includes(r.organism_id)
-    )
-    .forEach((r) => m.get(r.antibiotic_id)!.set(r.organism_id, r));
+  rowIds.forEach((id) => m.set(id, new Map()));
+  resistanceData
+    .filter((r) => {
+      const abxId = rowsAreAbx ? r.antibiotic_id : r.organism_id;
+      const orgId = rowsAreAbx ? r.organism_id : r.antibiotic_id;
+      return rowIds.includes(abxId) && colIds.includes(orgId);
+    })
+    .forEach((r) => {
+      const rowId = rowsAreAbx ? r.antibiotic_id : r.organism_id;
+      const colId = rowsAreAbx ? r.organism_id : r.antibiotic_id;
+      m.get(rowId)!.set(colId, r);
+    });
   return m;
 };
 
 /** Convert matrix into table‑friendly structures. */
 const formatMatrix = (
   matrix: Map<string, Map<string, any>>,
-  abxIds: string[],
-  orgIds: string[],
+  rowIds: string[],
+  colIds: string[],
   id2Main: Map<string, string>,
   id2Short: Map<string, string>,
 ) => {
-  const orgs = orgIds.map((id) => ({
+  const cols = colIds.map((id) => ({
     id,
     name: id2Main.get(id) ?? id,
     short: id2Short.get(id) ?? id,
   }));
 
-  const data = abxIds.map((abx) => {
+  const data = rowIds.map((rowId) => {
     const row: Record<string, any> = {
-      antibioticLong: id2Main.get(abx) ?? abx,
-      antibioticShort: id2Short.get(abx) ?? id2Main.get(abx) ?? abx,
+      rowLong: id2Main.get(rowId) ?? rowId,
+      rowShort: id2Short.get(rowId) ?? id2Main.get(rowId) ?? rowId,
     };
-    orgs.forEach((o) => {
-      const cell = matrix.get(abx)?.get(o.id);
-      row[o.name] = cell
+    cols.forEach((c) => {
+      const cell = matrix.get(rowId)?.get(c.id);
+      row[c.name] = cell
         ? { text: `${cell.resistance_pct}% (${cell.n_isolates})`, pct: cell.resistance_pct }
         : { text: '—', pct: undefined };
     });
     return row;
   });
-  return { data, orgs };
+  return { data, cols };
 };
 
 // ============================================================================
@@ -141,7 +146,7 @@ const SourceSwitcher = ({
   onSelect: (s: any) => void;
 }) => {
   if (sources.length <= 1) {
-    return <div className={styles.specimenDisplay}>Source: {selected.short_name}</div>;
+    return null;
   }
   return (
     <DropdownMenu.Root>
@@ -224,11 +229,9 @@ export default function ResistanceTable({
 
   useEffect(() => {
     if (gd?.sources?.length) {
-      const p = parseParams(paramString);
-      const init = p.source ? gd.sources.find(s => s.short_name === p.source) : null;
-      setSelectedSource(init || gd.sources[0]);
+      setSelectedSource(gd.sources[0]);
     }
-  }, [paramString, gd?.sources]);
+  }, [gd?.sources]);
 
   useLayoutEffect(() => {
     if (fullRef.current && compactRef.current && superRef.current) {
@@ -267,10 +270,28 @@ export default function ResistanceTable({
     return <div className={styles.error}>No data found for source: {selectedSource.short_name}</div>;
   }
 
-  const { data, orgs } = formatMatrix(
-    buildMatrix(abxIds, orgIds, resistanceData),
-    abxIds,
-    orgIds,
+  // ---------------- layout logic ----------------
+  let rowIds = abxIds;
+  let colIds = orgIds;
+  let rowsAreAbx = true;
+  const layout = p.layout || 'auto';
+
+  if (layout === 'organisms-rows') {
+    rowIds = orgIds;
+    colIds = abxIds;
+    rowsAreAbx = false;
+  } else if (layout === 'auto') {
+    if (orgIds.length > 4 && abxIds.length > 0 && orgIds.length / abxIds.length > 2) {
+      rowIds = orgIds;
+      colIds = abxIds;
+      rowsAreAbx = false;
+    }
+  }
+
+  const { data, cols } = formatMatrix(
+    buildMatrix(rowIds, colIds, rowsAreAbx, resistanceData),
+    rowIds,
+    colIds,
     id2Main,
     id2Short,
   );
@@ -298,12 +319,12 @@ export default function ResistanceTable({
     ghost = false,
   ) => {
     const interactive = !ghost;
-    const headers = orgs.map((o, i) =>
+    const headers = cols.map((c, i) =>
       mode === 'superCompact'
-        ? { text: `[${i + 1}]`, title: o.name }
+        ? { text: `[${i + 1}]`, title: c.name }
         : mode === 'compact'
-        ? { text: o.short, title: o.name }
-        : { text: o.name, title: undefined },
+        ? { text: c.short, title: c.name }
+        : { text: c.name, title: undefined },
     );
     const ghostStyle = ghost
       ? { visibility: 'hidden', height: 0, overflow: 'hidden' }
@@ -346,7 +367,7 @@ export default function ResistanceTable({
           </thead>
           <tbody>
             {data.map((row, rowIdx) => (
-              <tr key={row.antibioticLong}>
+              <tr key={row.rowLong}>
                 <td
                   style={{
                     ...abxColBase,
@@ -360,21 +381,21 @@ export default function ResistanceTable({
                   }
                 >
                   {mode === 'full' ? (
-                    row.antibioticLong
+                    row.rowLong
                   ) : (
-                    <Tip label={row.antibioticLong}>
-                      <span>{row.antibioticShort}</span>
+                    <Tip label={row.rowLong}>
+                      <span>{row.rowShort}</span>
                     </Tip>
                   )}
                 </td>
-                {orgs.map((o, colIdx) => {
-                  const cell = row[o.name];
+                {cols.map((c, colIdx) => {
+                  const cell = row[c.name];
                   const highlight =
                     interactive &&
                     (hoverRow === rowIdx || hoverCol === colIdx);
                   return (
                     <td
-                      key={o.id}
+                      key={c.id}
                       style={{
                         ...cellStyle(cell?.pct),
                         ...(highlight ? hlStyle : {}),
@@ -427,10 +448,10 @@ export default function ResistanceTable({
             {renderTable(display, null, false)}
             {(display === 'compact' || display === 'superCompact') && (
               <div className={styles.legend}>
-                {orgs.map((o, i) => (
-                  <span key={o.id}>
-                    <b>{display === 'superCompact' ? `[${i + 1}]` : o.short}:</b> {o.name}
-                    {i < orgs.length - 1 && '; '}
+                {cols.map((c, i) => (
+                  <span key={c.id}>
+                    <b>{display === 'superCompact' ? `[${i + 1}]` : c.short}:</b> {c.name}
+                    {i < cols.length - 1 && '; '}
                   </span>
                 ))}
               </div>
