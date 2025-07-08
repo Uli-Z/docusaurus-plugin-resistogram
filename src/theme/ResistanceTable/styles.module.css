@@ -17,6 +17,7 @@
   overflow-x: auto;
   border-collapse: separate;
   border-spacing: 0;
+  margin-bottom: 0;
 }
 
 .resistanceTable th,
@@ -89,4 +90,39 @@
 
 .tooltipArrow {
   fill: rgba(60, 60, 60, 0.9);
+}
+
+/* ============================================================================
+   Legend
+   ============================================================================ */
+
+.legend {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-top: none;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.legend b {
+  font-weight: 600;
+}
+
+.sourceInfo {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-top: none;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.65rem;
+  color: #666;
+}
+
+.sourceInfo a {
+  color: #666;
+  text-decoration: none;
+}
+
+.sourceInfo a:hover {
+  text-decoration: underline;
 }

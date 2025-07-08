@@ -421,8 +421,25 @@ export default function ResistanceTable({
         {renderTable('full', fullRef, true)}
         {renderTable('compact', compactRef, true)}
         {renderTable('superCompact', superRef, true)}
-        {/* visible table */}
-        {ready && renderTable(display, null, false)}
+        {/* visible table and legend */}
+        {ready && (
+          <div>
+            {renderTable(display, null, false)}
+            {(display === 'compact' || display === 'superCompact') && (
+              <div className={styles.legend}>
+                {orgs.map((o, i) => (
+                  <span key={o.id}>
+                    <b>{display === 'superCompact' ? `[${i + 1}]` : o.short}:</b> {o.name}
+                    {i < orgs.length - 1 && '; '}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className={styles.sourceInfo}>
+              Source: <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">{selectedSource.long_name}</a>
+            </div>
+          </div>
+        )}
       </div>
     </RadixTooltip.Provider>
   );
