@@ -4,7 +4,28 @@
  */
 
 // ============================================================================
-// Helper functions
+// Styling Helpers
+// ============================================================================
+
+export const pctToColor = (pct: number, colorMode: 'dark' | 'light') => {
+  const hue = Math.round((1 - pct / 100) * 120);
+  return colorMode === 'dark'
+    ? `hsl(${hue},40%,30%)`
+    : `hsl(${hue},60%,85%)`;
+};
+
+export const cellStyle = (pct: number | undefined, colorMode: 'dark' | 'light') => ({
+  backgroundColor:
+    pct === undefined
+      ? 'var(--rt-empty-cell-background)'
+      : pctToColor(pct, colorMode),
+});
+
+export const hl = { filter: 'brightness(90%)' } as const;
+
+
+// ============================================================================
+// Data Processing functions
 // ============================================================================
 
 export const parseParams = (s: string): Record<string, string> =>
