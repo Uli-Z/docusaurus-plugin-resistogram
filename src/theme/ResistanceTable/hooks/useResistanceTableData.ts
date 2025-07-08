@@ -71,6 +71,9 @@ export function useResistanceTableData(
       cIds = abxIds;
       rAreAbx = false;
     } else if (autoLayout === 'auto') {
+      // Heuristic for auto layout: if there are significantly more organisms
+      // than antibiotics, it's better to put organisms in rows to avoid
+      // a very wide, hard-to-read table.
       if (orgIds.length > 4 && abxIds.length && orgIds.length / abxIds.length > 2) {
         rIds = orgIds;
         cIds = abxIds;

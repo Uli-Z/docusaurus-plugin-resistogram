@@ -59,15 +59,15 @@
 }
 
 /* ============================================================================
-   Specimen Switcher
+   Source Switcher
    ============================================================================ */
 
-.specimenDisplay {
+.sourceSwitcherDisplay {
   margin-bottom: 1rem;
   font-style: italic;
 }
 
-.specimenTrigger {
+.sourceSwitcherTrigger {
   background-color: var(--rt-subtle-background-hover);
   border: 1px solid var(--rt-border-color);
   color: var(--rt-text-color);
@@ -77,18 +77,18 @@
   margin-bottom: 1rem;
 }
 
-.specimenTriggerInner {
+.sourceSwitcherTriggerInner {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.specimenChevron {
+.sourceSwitcherChevron {
   width: 16px;
   height: 16px;
 }
 
-.specimenContent {
+.sourceSwitcherContent {
   background-color: var(--rt-background-color);
   border: 1px solid var(--rt-border-color);
   border-radius: 4px;
@@ -97,13 +97,13 @@
   z-index: 10;
 }
 
-.specimenItem {
+.sourceSwitcherItem {
   padding: 0.5rem 1rem;
   cursor: pointer;
   color: var(--rt-text-color);
 }
 
-.specimenItem:hover {
+.sourceSwitcherItem:hover {
   background-color: var(--rt-subtle-background-hover);
 }
 
