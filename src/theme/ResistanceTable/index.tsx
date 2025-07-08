@@ -318,8 +318,48 @@ export default function ResistanceTable({
   );
 
   if (!data.length) {
+    const formatParamList = (param: string, ids: string[]): string => {
+      if (!param || param === 'all') return 'all';
+      if (param === 'auto') {
+        if (ids.length === 0) return 'none detected in page text';
+      }
+      // For 'auto' with detections and for explicit lists, show the resolved names.
+      return ids.map(id => id2Main.get(id) || id).join(', ');
+    };
+
+    const abxParam = p.abx || 'all';
+    const orgParam = p.org || 'all';
+
     return (
-      <div className={styles.error}>No matching resistance data found.</div>
+      <RadixTooltip.Provider delayDuration={0}>
+        <div ref={containerRef}>
+          <SourceSwitcher
+            sources={gd.sources}
+            selected={selectedSource}
+            onSelect={setSelectedSource}
+          />
+          <div className={styles.tableContainer}>
+            <div className={styles.noDataContainer}>
+              <p>
+                <strong>Resistance Table</strong>
+              </p>
+              <p>No matching resistance data found in this source.</p>
+              <p>The query parameters were:</p>
+              <ul>
+                <li>
+                  Antibiotics: {formatParamList(abxParam, abxIds)}
+                </li>
+                <li>
+                  Organisms: {formatParamList(orgParam, orgIds)}
+                </li>
+              </ul>
+            </div>
+            <div className={styles.sourceInfo}>
+              Source: <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">{selectedSource.long_name}</a>
+            </div>
+          </div>
+        </div>
+      </RadixTooltip.Provider>
     );
   }
 

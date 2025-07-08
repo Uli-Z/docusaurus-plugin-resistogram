@@ -131,3 +131,24 @@
 .sourceInfo a:hover {
   text-decoration: underline;
 }
+
+/* ============================================================================
+   No Data Box
+   ============================================================================ */
+
+.noDataContainer {
+  border: 1px solid #ddd;
+  border-bottom: none; /* The sourceInfo will have the bottom border */
+  padding: 1rem;
+  background-color: #f9f9f9; /* A light background */
+}
+
+.noDataContainer p {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.noDataContainer ul {
+  margin-bottom: 0;
+  padding-left: 1.5rem;
+}
