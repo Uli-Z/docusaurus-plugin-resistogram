@@ -83,7 +83,6 @@ const resolveIds = (
 const buildMatrix = (
   abxIds: string[],
   orgIds: string[],
-  specimen: string,
   rows: any[],
 ) => {
   const m = new Map<string, Map<string, any>>();
@@ -92,8 +91,7 @@ const buildMatrix = (
     .filter(
       (r) =>
         abxIds.includes(r.antibiotic_id) &&
-        orgIds.includes(r.organism_id) &&
-        (!specimen || specimen === 'auto' || r.specimen === specimen),
+        orgIds.includes(r.organism_id)
     )
     .forEach((r) => m.get(r.antibiotic_id)!.set(r.organism_id, r));
   return m;
@@ -129,56 +127,41 @@ const formatMatrix = (
   return { data, orgs };
 };
 
-/** Get all specimen types available for current ID selection. */
-const getAvailableSpecimens = (
-  abxIds: string[],
-  orgIds: string[],
-  rows: any[],
-) => {
-  const s = new Set<string>();
-  rows.forEach((r) => {
-    if (abxIds.includes(r.antibiotic_id) && orgIds.includes(r.organism_id) && r.specimen) {
-      s.add(r.specimen);
-    }
-  });
-  return ['auto', ...Array.from(s).sort()];
-};
-
 // ============================================================================
 // UI components
 // ============================================================================
 
-const SpecimenSwitcher = ({
-  available,
+const SourceSwitcher = ({
+  sources,
   selected,
   onSelect,
 }: {
-  available: string[];
-  selected: string;
-  onSelect: (s: string) => void;
+  sources: any[];
+  selected: any;
+  onSelect: (s: any) => void;
 }) => {
-  if (available.length <= 1) {
-    return <div className={styles.specimenDisplay}>Specimen: {selected}</div>;
+  if (sources.length <= 1) {
+    return <div className={styles.specimenDisplay}>Source: {selected.short_name}</div>;
   }
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button className={styles.specimenTrigger}>
           <span className={styles.specimenTriggerInner}>
-            <span>Specimen: {selected}</span>
+            <span>Source: {selected.short_name}</span>
             <ChevronDownIcon className={styles.specimenChevron} aria-hidden />
           </span>
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content className={styles.specimenContent} sideOffset={5}>
-          {available.map((s) => (
+          {sources.map((s) => (
             <DropdownMenu.Item
-              key={s}
+              key={s.file}
               className={styles.specimenItem}
               onSelect={() => onSelect(s)}
             >
-              {s}
+              {s.short_name}
             </DropdownMenu.Item>
           ))}
         </DropdownMenu.Content>
@@ -223,46 +206,13 @@ export default function ResistanceTable({
   const [ready, setReady] = useState(false);
   const [hoverRow, setHoverRow] = useState<number | null>(null);
   const [hoverCol, setHoverCol] = useState<number | null>(null);
-  const [selectedSpecimen, setSelectedSpecimen] = useState('auto');
+  const [selectedSource, setSelectedSource] = useState<any>(null);
 
   const gd: any = usePluginData(
     'docusaurus-plugin-resistogram',
     'example-resistogram',
   );
-  if (!gd)
-    return <div className={styles.error}>Error: plugin data not found.</div>;
 
-  const id2Main = new Map<string, string>(Object.entries(gd.id2MainSyn));
-  const id2Short = new Map<string, string>(Object.entries(gd.id2ShortName));
-
-  const p = parseParams(paramString);
-  const abxIds = resolveIds(p.abx, gd.allAbxIds, gd.abxSyn2Id, pageText);
-  const orgIds = resolveIds(p.org, gd.allOrgIds, gd.orgSyn2Id, pageText);
-
-  
-
-  const availableSpecimens = getAvailableSpecimens(
-    abxIds,
-    orgIds,
-    gd.resistanceData,
-  );
-
-  useEffect(() => {
-    const init = p.specimen || 'auto';
-    if (availableSpecimens.includes(init)) setSelectedSpecimen(init);
-    else if (availableSpecimens.length)
-      setSelectedSpecimen(availableSpecimens[0]);
-  }, [paramString, gd.resistanceData]);
-
-  const { data, orgs } = formatMatrix(
-    buildMatrix(abxIds, orgIds, selectedSpecimen, gd.resistanceData),
-    abxIds,
-    orgIds,
-    id2Main,
-    id2Short,
-  );
-
-  // ---------------- responsive layout ----------------
   const chooseMode = () => {
     const w = containerRef.current?.offsetWidth ?? 0;
     if (!w) return;
@@ -272,17 +222,22 @@ export default function ResistanceTable({
     else setDisplay('superCompact');
   };
 
-  useLayoutEffect(() => {
-    if (
-      !ready &&
-      fullRef.current &&
-      compactRef.current &&
-      superRef.current
-    ) {
-      setReady(true);
-      chooseMode();
+  useEffect(() => {
+    if (gd?.sources?.length) {
+      const p = parseParams(paramString);
+      const init = p.source ? gd.sources.find(s => s.short_name === p.source) : null;
+      setSelectedSource(init || gd.sources[0]);
     }
-  }, [ready]);
+  }, [paramString, gd?.sources]);
+
+  useLayoutEffect(() => {
+    if (fullRef.current && compactRef.current && superRef.current) {
+      chooseMode();
+      if (!ready) {
+        setReady(true);
+      }
+    }
+  }, [selectedSource, ready]);
 
   useEffect(() => {
     if (!ready || !containerRef.current) return;
@@ -291,10 +246,40 @@ export default function ResistanceTable({
     return () => ro.disconnect();
   }, [ready]);
 
-  if (!data.length)
+  if (!gd) {
+    return <div className={styles.error}>Error: plugin data not found.</div>;
+  }
+
+  if (!selectedSource) {
+    return <div className={styles.error}>No data source selected or available.</div>;
+  }
+  
+  const id2Main = new Map<string, string>(Object.entries(gd.id2MainSyn));
+  const id2Short = new Map<string, string>(Object.entries(gd.id2ShortName));
+
+  const p = parseParams(paramString);
+  const abxIds = resolveIds(p.abx, gd.allAbxIds, gd.abxSyn2Id, pageText);
+  const orgIds = resolveIds(p.org, gd.allOrgIds, gd.orgSyn2Id, pageText);
+  
+  const resistanceData = gd.resistanceData[selectedSource.file];
+
+  if (!resistanceData) {
+    return <div className={styles.error}>No data found for source: {selectedSource.short_name}</div>;
+  }
+
+  const { data, orgs } = formatMatrix(
+    buildMatrix(abxIds, orgIds, resistanceData),
+    abxIds,
+    orgIds,
+    id2Main,
+    id2Short,
+  );
+
+  if (!data.length) {
     return (
       <div className={styles.error}>No matching resistance data found.</div>
     );
+  }
 
   // ---------------- styling helpers ----------------
   const pctToColor = (pct: number) =>
@@ -427,10 +412,10 @@ export default function ResistanceTable({
   return (
     <RadixTooltip.Provider delayDuration={0}>
       <div ref={containerRef}>
-        <SpecimenSwitcher
-          available={availableSpecimens}
-          selected={selectedSpecimen}
-          onSelect={setSelectedSpecimen}
+        <SourceSwitcher
+          sources={gd.sources}
+          selected={selectedSource}
+          onSelect={setSelectedSource}
         />
         {/* ghost tables for width measurement */}
         {renderTable('full', fullRef, true)}
