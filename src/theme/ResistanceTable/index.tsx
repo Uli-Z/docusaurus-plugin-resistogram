@@ -298,7 +298,7 @@ export default function ResistanceTable({
 
   // ---------------- styling helpers ----------------
   const pctToColor = (pct: number) =>
-    `hsl(${Math.round((pct / 100) * 120)}, 60%, 85%)`;
+    `hsl(${Math.round((1 - pct / 100) * 120)}, 60%, 85%)`;
   const cellStyle = (pct: number | undefined) =>
     pct === undefined
       ? { backgroundColor: '#f2f2f2' }
