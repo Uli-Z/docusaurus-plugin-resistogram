@@ -181,3 +181,9 @@
   margin-bottom: 0;
   padding-left: 1.5rem;
 }
+
+.fullCellTrigger {
+  display: block;
+  margin: -0.5rem; /* Counteract the cell's default padding */
+  padding: 0.5rem; /* Add the padding back to the content */
+}
