@@ -7,7 +7,7 @@ interface Opts {
   files?: {
     antibiotics?: string;
     organisms?: string;
-    resistance?: string;
+    sources?: string;
   };
 }
 
@@ -20,14 +20,17 @@ export default function pluginResist(
   const files = {
     antibiotics: opts.files?.antibiotics ?? "antibiotics.json",
     organisms: opts.files?.organisms ?? "organisms.json",
-    resistance: opts.files?.resistance ?? "resistance.csv",
+    sources: opts.files?.sources ?? "data-src.json",
   };
 
   return {
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const [abx, org, res] = await loadData(join(siteDir, dataDir), files);
+      const { abx, org, sources, resistanceData } = await loadData(
+        join(siteDir, dataDir),
+        files
+      );
 
       const abxSyn2Id = mkSynMap(abx);
       const orgSyn2Id = mkSynMap(org);
@@ -46,7 +49,8 @@ export default function pluginResist(
         id2ShortName: Object.fromEntries(
           new Map([...abx, ...org].map((r: any) => [r.id, r.short_name]))
         ),
-        resistanceData: res,
+        sources,
+        resistanceData: Object.fromEntries(resistanceData),
         allAbxIds: abx.map((r: any) => r.id),
         allOrgIds: org.map((r: any) => r.id),
       };

@@ -12,17 +12,27 @@ const loadCsv = (dir: string, file: string) =>
 
 export const loadData = async (
   dir: string,
-  files: { antibiotics: string; organisms: string; resistance: string }
+  files: {
+    antibiotics: string;
+    organisms: string;
+    sources: string;
+  }
 ) => {
-  const [abxData, org, res] = await Promise.all([
+  const [abxData, org, sources] = await Promise.all([
     loadJson(dir, files.antibiotics),
     loadJson(dir, files.organisms),
-    loadCsv(dir, files.resistance),
+    loadJson(dir, files.sources),
   ]);
+
+  const resistanceData = new Map<string, any[]>();
+  for (const source of sources) {
+    const csvData = await loadCsv(dir, source.file);
+    resistanceData.set(source.file, csvData);
+  }
 
   const abx = [...abxData.classes, ...abxData.antibiotics];
 
-  return [abx, org, res];
+  return { abx, org, sources, resistanceData };
 };
 
 export const mkSynMap = (rows: any[]) =>
