@@ -326,106 +326,101 @@ export default function ResistanceTable({
         ? { text: c.short, title: c.name }
         : { text: c.name, title: undefined },
     );
-    const ghostStyle = ghost
-      ? { visibility: 'hidden', height: 0, overflow: 'hidden' }
-      : {};
 
     return (
-      <div style={ghostStyle}>
-        <table
-          ref={ref}
-          className={styles.resistanceTable}
-          style={{ borderCollapse: 'separate', borderSpacing: 0 }}
-        >
-          <thead>
-            <tr>
-              <th style={{ ...abxColBase }}></th>
-              {headers.map((h, colIdx) => (
-                <th
-                  key={colIdx}
-                  style={{
-                    cursor: h.title ? 'help' : 'default',
-                    ...(interactive && hoverCol === colIdx ? hlStyle : {}),
-                  }}
-                  onMouseEnter={
-                    interactive ? () => setHoverCol(colIdx) : undefined
-                  }
-                  onMouseLeave={
-                    interactive ? () => setHoverCol(null) : undefined
-                  }
-                >
-                  {h.title ? (
-                    <Tip label={h.title}>
-                      <span>{h.text}</span>
-                    </Tip>
-                  ) : (
-                    h.text
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row, rowIdx) => (
-              <tr key={row.rowLong}>
-                <td
-                  style={{
-                    ...abxColBase,
-                    ...(interactive && hoverRow === rowIdx ? hlStyle : {}),
-                  }}
-                  onMouseEnter={
-                    interactive ? () => setHoverRow(rowIdx) : undefined
-                  }
-                  onMouseLeave={
-                    interactive ? () => setHoverRow(null) : undefined
-                  }
-                >
-                  {mode === 'full' ? (
-                    row.rowLong
-                  ) : (
-                    <Tip label={row.rowLong}>
-                      <span>{row.rowShort}</span>
-                    </Tip>
-                  )}
-                </td>
-                {cols.map((c, colIdx) => {
-                  const cell = row[c.name];
-                  const highlight =
-                    interactive &&
-                    (hoverRow === rowIdx || hoverCol === colIdx);
-                  return (
-                    <td
-                      key={c.id}
-                      style={{
-                        ...cellStyle(cell?.pct),
-                        ...(highlight ? hlStyle : {}),
-                      }}
-                      onMouseEnter={
-                        interactive
-                          ? () => {
-                              setHoverRow(rowIdx);
-                              setHoverCol(colIdx);
-                            }
-                          : undefined
-                      }
-                      onMouseLeave={
-                        interactive
-                          ? () => {
-                              setHoverRow(null);
-                              setHoverCol(null);
-                            }
-                          : undefined
-                      }
-                    >
-                      {cell ? cell.text : '—'}
-                    </td>
-                  );
-                })}
-              </tr>
+      <table
+        ref={ref}
+        className={styles.resistanceTable}
+        style={{ borderCollapse: 'separate', borderSpacing: 0 }}
+      >
+        <thead>
+          <tr>
+            <th style={{ ...abxColBase }}></th>
+            {headers.map((h, colIdx) => (
+              <th
+                key={colIdx}
+                style={{
+                  cursor: h.title ? 'help' : 'default',
+                  ...(interactive && hoverCol === colIdx ? hlStyle : {}),
+                }}
+                onMouseEnter={
+                  interactive ? () => setHoverCol(colIdx) : undefined
+                }
+                onMouseLeave={
+                  interactive ? () => setHoverCol(null) : undefined
+                }
+              >
+                {h.title ? (
+                  <Tip label={h.title}>
+                    <span>{h.text}</span>
+                  </Tip>
+                ) : (
+                  h.text
+                )}
+              </th>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, rowIdx) => (
+            <tr key={row.rowLong}>
+              <td
+                style={{
+                  ...abxColBase,
+                  ...(interactive && hoverRow === rowIdx ? hlStyle : {}),
+                }}
+                onMouseEnter={
+                  interactive ? () => setHoverRow(rowIdx) : undefined
+                }
+                onMouseLeave={
+                  interactive ? () => setHoverRow(null) : undefined
+                }
+              >
+                {mode === 'full' ? (
+                  row.rowLong
+                ) : (
+                  <Tip label={row.rowLong}>
+                    <span>{row.rowShort}</span>
+                  </Tip>
+                )}
+              </td>
+              {cols.map((c, colIdx) => {
+                const cell = row[c.name];
+                const highlight =
+                  interactive &&
+                  (hoverRow === rowIdx || hoverCol === colIdx);
+                return (
+                  <td
+                    key={c.id}
+                    style={{
+                      ...cellStyle(cell?.pct),
+                      ...(highlight ? hlStyle : {}),
+                    }}
+                    onMouseEnter={
+                      interactive
+                        ? () => {
+                            setHoverRow(rowIdx);
+                            setHoverCol(colIdx);
+                          }
+                        : undefined
+                    }
+                    onMouseLeave={
+                      interactive
+                        ? () => {
+                            setHoverRow(null);
+                            setHoverCol(null);
+                          }
+                        : undefined
+                    }
+                  >
+                    {cell ? cell.text : '—'}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     );
   };
 
@@ -439,12 +434,14 @@ export default function ResistanceTable({
           onSelect={setSelectedSource}
         />
         {/* ghost tables for width measurement */}
-        {renderTable('full', fullRef, true)}
-        {renderTable('compact', compactRef, true)}
-        {renderTable('superCompact', superRef, true)}
+        <div style={{ visibility: 'hidden', height: 0, overflow: 'hidden' }}>
+          {renderTable('full', fullRef, true)}
+          {renderTable('compact', compactRef, true)}
+          {renderTable('superCompact', superRef, true)}
+        </div>
         {/* visible table and legend */}
         {ready && (
-          <div>
+          <div className={styles.tableContainer}>
             {renderTable(display, null, false)}
             {(display === 'compact' || display === 'superCompact') && (
               <div className={styles.legend}>
