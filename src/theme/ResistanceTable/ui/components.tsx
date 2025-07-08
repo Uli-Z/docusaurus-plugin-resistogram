@@ -19,19 +19,19 @@ export const SourceSwitcher = ({
   sources.length <= 1 ? null : (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button className={styles.specimenTrigger}>
-          <span className={styles.specimenTriggerInner}>
+        <button className={styles.sourceSwitcherTrigger}>
+          <span className={styles.sourceSwitcherTriggerInner}>
             <span>Source: {selected?.short_name ?? '—'}</span>
-            <ChevronDownIcon className={styles.specimenChevron} aria-hidden />
+            <ChevronDownIcon className={styles.sourceSwitcherChevron} aria-hidden />
           </span>
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content className={styles.specimenContent} sideOffset={5}>
+        <DropdownMenu.Content className={styles.sourceSwitcherContent} sideOffset={5}>
           {sources.map((s) => (
             <DropdownMenu.Item
               key={s.file}
-              className={styles.specimenItem}
+              className={styles.sourceSwitcherItem}
               onSelect={() => onSelect(s)}
             >
               {s.short_name}
