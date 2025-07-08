@@ -1,8 +1,9 @@
-import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
+import { useColorMode } from '@docusaurus/theme-common';
 import { usePluginData } from '@docusaurus/useGlobalData';
-import * as RadixTooltip from '@radix-ui/react-tooltip';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as RadixTooltip from '@radix-ui/react-tooltip';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styles from './styles.module.css';
 
 // ============================================================================
@@ -206,6 +207,8 @@ export default function ResistanceTable({
   const compactRef = useRef<HTMLTableElement>(null);
   const superRef = useRef<HTMLTableElement>(null);
 
+  const { colorMode } = useColorMode();
+
   const p = parseParams(paramString);
   const [showEmpty, setShowEmpty] = useState(p.showEmpty === 'true');
 
@@ -364,11 +367,16 @@ export default function ResistanceTable({
   }
 
   // ---------------- styling helpers ----------------
-  const pctToColor = (pct: number) =>
-    `hsl(${Math.round((1 - pct / 100) * 120)}, 60%, 85%)`;
+  const pctToColor = (pct: number) => {
+    const hue = Math.round((1 - pct / 100) * 120);
+    if (colorMode === 'dark') {
+      return `hsl(${hue}, 40%, 30%)`;
+    }
+    return `hsl(${hue}, 60%, 85%)`;
+  };
   const cellStyle = (pct: number | undefined) =>
     pct === undefined
-      ? { backgroundColor: '#f2f2f2' }
+      ? { backgroundColor: 'var(--rt-empty-cell-background)' }
       : { backgroundColor: pctToColor(pct) };
   const hlStyle = { filter: 'brightness(90%)' };
   const abxColBase = { whiteSpace: 'nowrap', width: '1%' } as const;
