@@ -2,6 +2,32 @@
    General Styles
    ============================================================================ */
 
+:root {
+  --rt-border-color: #ddd;
+  --rt-background-color: #fff;
+  --rt-text-color: #333;
+  --rt-subtle-background: #f9f9f9;
+  --rt-subtle-background-hover: #f0f0f0;
+  --rt-source-info-background: #f0f0f0;
+  --rt-source-info-text: #666;
+  --rt-empty-cell-background: #f2f2f2;
+  --rt-tooltip-background: rgba(60, 60, 60, 0.9);
+  --rt-tooltip-text: #fff;
+}
+
+[data-theme='dark'] {
+  --rt-border-color: #444;
+  --rt-background-color: #1e1e1e;
+  --rt-text-color: #eee;
+  --rt-subtle-background: #252525;
+  --rt-subtle-background-hover: #333;
+  --rt-source-info-background: #333;
+  --rt-source-info-text: #bbb;
+  --rt-empty-cell-background: #2a2a2a;
+  --rt-tooltip-background: rgba(200, 200, 200, 0.9);
+  --rt-tooltip-text: #000;
+}
+
 .error {
   color: red;
   border: 1px solid red;
@@ -28,7 +54,8 @@
 .resistanceTable td {
   padding: 0.5rem;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--rt-border-color);
+  color: var(--rt-text-color);
 }
 
 /* ============================================================================
@@ -41,8 +68,9 @@
 }
 
 .specimenTrigger {
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
+  background-color: var(--rt-subtle-background-hover);
+  border: 1px solid var(--rt-border-color);
+  color: var(--rt-text-color);
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
@@ -61,8 +89,8 @@
 }
 
 .specimenContent {
-  background-color: white;
-  border: 1px solid #ccc;
+  background-color: var(--rt-background-color);
+  border: 1px solid var(--rt-border-color);
   border-radius: 4px;
   padding: 0.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -72,10 +100,11 @@
 .specimenItem {
   padding: 0.5rem 1rem;
   cursor: pointer;
+  color: var(--rt-text-color);
 }
 
 .specimenItem:hover {
-  background-color: #f0f0f0;
+  background-color: var(--rt-subtle-background-hover);
 }
 
 /* ============================================================================
@@ -83,8 +112,8 @@
    ============================================================================ */
 
 .tooltipContent {
-  background-color: rgba(60, 60, 60, 0.9);
-  color: #fff;
+  background-color: var(--rt-tooltip-background);
+  color: var(--rt-tooltip-text);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -93,7 +122,7 @@
 }
 
 .tooltipArrow {
-  fill: rgba(60, 60, 60, 0.9);
+  fill: var(--rt-tooltip-background);
 }
 
 /* ============================================================================
@@ -101,12 +130,12 @@
    ============================================================================ */
 
 .legend {
-  background-color: #f9f9f9;
-  border: 1px solid #ddd;
+  background-color: var(--rt-subtle-background);
+  border: 1px solid var(--rt-border-color);
   border-top: none;
   padding: 0.75rem;
   font-size: 0.9rem;
-  color: #333;
+  color: var(--rt-text-color);
 }
 
 .legend b {
@@ -114,16 +143,16 @@
 }
 
 .sourceInfo {
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
+  background-color: var(--rt-source-info-background);
+  border: 1px solid var(--rt-border-color);
   border-top: none;
   padding: 0.25rem 0.75rem;
   font-size: 0.65rem;
-  color: #666;
+  color: var(--rt-source-info-text);
 }
 
 .sourceInfo a {
-  color: #666;
+  color: var(--rt-source-info-text);
   text-decoration: none;
 }
 
@@ -136,10 +165,11 @@
    ============================================================================ */
 
 .noDataContainer {
-  border: 1px solid #ddd;
+  border: 1px solid var(--rt-border-color);
   border-bottom: none; /* The sourceInfo will have the bottom border */
   padding: 1rem;
-  background-color: #f9f9f9; /* A light background */
+  background-color: var(--rt-subtle-background); /* A light background */
+  color: var(--rt-text-color);
 }
 
 .noDataContainer p {
