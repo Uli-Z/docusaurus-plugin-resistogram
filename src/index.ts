@@ -70,9 +70,11 @@ export default function pluginResist(
         }
       }
 
-      const globalData = {
+      const sharedDataFileName = "shared-resistogram-data.json";
+      const sharedData = {
         abxClasses,
         abxItems,
+        org,
         classToAbx: Object.fromEntries(classToAbx),
         abxSyn2Id: Object.fromEntries(abxSyn2Id),
         orgSyn2Id: Object.fromEntries(orgSyn2Id),
@@ -87,10 +89,15 @@ export default function pluginResist(
         id2ShortName: Object.fromEntries(
           new Map([...abx, ...org].map((r: any) => [r.id, r.short_name]))
         ),
-        sources,
-        resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
         allAbxIds: abx.map((r: any) => r.id),
         allOrgIds: org.map((r: any) => r.id),
+      };
+      writeJsonSync(join(pluginDataDir, sharedDataFileName), sharedData);
+
+      const globalData = {
+        sources,
+        resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
+        sharedDataFileName,
       };
 
       actions.setGlobalData(globalData);

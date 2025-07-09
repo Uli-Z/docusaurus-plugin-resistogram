@@ -24,12 +24,16 @@ function decompressData(data: any[][]): any[] {
   });
 }
 
-async function fetchResistanceData(path: string) {
+async function fetchJson(path: string) {
   const response = await fetch(path);
   if (!response.ok) {
     throw new Error(`Network response was not ok: ${response.statusText}`);
   }
-  const compressedData = await response.json();
+  return response.json();
+}
+
+async function fetchResistanceData(path: string) {
+  const compressedData = await fetchJson(path);
   return decompressData(compressedData);
 }
 
@@ -39,51 +43,65 @@ export function useResistanceTableData(
   selectedSource: Source | null,
   showEmpty: boolean,
 ) {
-  const gd: any = usePluginData(
+  const pluginData: any = usePluginData(
     'docusaurus-plugin-resistogram',
     'example-resistogram',
   );
 
+  const [sharedData, setSharedData] = useState<any | null>(null);
   const [resistanceData, setResistanceData] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const p = useMemo(() => parseParams(paramString), [paramString]);
 
-  const fileName = selectedSource ? gd.resistanceDataFileNames?.[selectedSource.file] : null;
-  const dataUrl = useBaseUrl(fileName ? `/assets/json/${fileName}` : null);
+  const sharedDataUrl = useBaseUrl(pluginData.sharedDataFileName ? `/assets/json/${pluginData.sharedDataFileName}` : null);
+  const resistanceFileName = selectedSource ? pluginData.resistanceDataFileNames?.[selectedSource.file] : null;
+  const resistanceDataUrl = useBaseUrl(resistanceFileName ? `/assets/json/${resistanceFileName}` : null);
 
   useEffect(() => {
-    if (!dataUrl || !selectedSource || !fileName) {
-      if (!selectedSource) setIsLoading(false);
-      return;
+    async function loadShared() {
+      if (!sharedDataUrl) return;
+      try {
+        setIsLoading(true);
+        const data = await fetchJson(sharedDataUrl);
+        setSharedData(data);
+      } catch (e) {
+        setError(e);
+      }
     }
+    loadShared();
+  }, [sharedDataUrl]);
 
-    setIsLoading(true);
-    setError(null);
-
-    fetchResistanceData(dataUrl)
-      .then(data => {
+  useEffect(() => {
+    async function loadResistance() {
+      if (!resistanceDataUrl || !selectedSource) {
+        if (!selectedSource) setIsLoading(false);
+        return;
+      }
+      try {
+        // Don't set loading to true if sharedData is still loading
+        if (sharedData) setIsLoading(true);
+        const data = await fetchResistanceData(resistanceDataUrl);
         setResistanceData(data);
-      })
-      .catch(err => {
-        setError(err);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [dataUrl, selectedSource]);
+      } catch (e) {
+        setError(e);
+      } finally {
+        if (sharedData) setIsLoading(false);
+      }
+    }
+    loadResistance();
+  }, [resistanceDataUrl, selectedSource, sharedData]);
 
-  const id2Main = useMemo(
-    () => new Map<string, string>(Object.entries(gd?.id2MainSyn ?? {})),
-    [gd],
-  );
-  const id2Short = useMemo(
-    () => new Map<string, string>(Object.entries(gd?.id2ShortName ?? {})),
-    [gd],
-  );
-
-  const { allAbxIds, classToAbx: classToAbxObj } = gd;
+  const {
+    id2MainSyn: id2Main,
+    id2ShortName: id2Short,
+    allAbxIds,
+    classToAbx: classToAbxObj,
+    abxSyn2Id,
+    allOrgIds,
+    orgSyn2Id,
+  } = sharedData || {};
 
   const classToAbx = useMemo(
     () => new Map<string, string[]>(Object.entries(classToAbxObj ?? {})),
@@ -91,10 +109,11 @@ export function useResistanceTableData(
   );
 
   const abxIds = useMemo(() => {
+    if (!sharedData) return [];
     const initialIds = resolveIds(
       p.abx,
-      gd?.allAbxIds ?? [],
-      gd?.abxSyn2Id ?? {},
+      allAbxIds ?? [],
+      abxSyn2Id ?? {},
       pageText,
     );
 
@@ -109,21 +128,23 @@ export function useResistanceTableData(
       }
     }
     return Array.from(expanded);
-  }, [p.abx, gd, pageText, classToAbx]);
+  }, [p.abx, sharedData, pageText, classToAbx]);
 
   const orgIds = useMemo(
-    () =>
-      resolveIds(
+    () => {
+      if (!sharedData) return [];
+      return resolveIds(
         p.org,
-        gd?.allOrgIds ?? [],
-        gd?.orgSyn2Id ?? {},
+        allOrgIds ?? [],
+        orgSyn2Id ?? {},
         pageText,
-      ),
-    [p.org, gd, pageText],
+      )
+    },
+    [p.org, sharedData, pageText],
   );
 
   const sortedAbxIds = useMemo(
-    () => groupAndSortAntibiotics(abxIds, allAbxIds, classToAbx),
+    () => groupAndSortAntibiotics(abxIds, allAbxIds ?? [], classToAbx),
     [abxIds, allAbxIds, classToAbx],
   );
 
@@ -166,7 +187,7 @@ export function useResistanceTableData(
   const finalColIds = showEmpty ? colIds : colIds.filter((id) => !emptyColIds.includes(id));
 
   const { data, cols } = useMemo(
-    () => formatMatrix(matrix, finalRowIds, finalColIds, id2Main, id2Short),
+    () => formatMatrix(matrix, finalRowIds, finalColIds, new Map(Object.entries(id2Main ?? {})), new Map(Object.entries(id2Short ?? {}))),
     [matrix, finalRowIds, finalColIds, id2Main, id2Short],
   );
 
@@ -179,7 +200,7 @@ export function useResistanceTableData(
     rowsAreAbx,
     emptyRowIds,
     emptyColIds,
-    sources: gd?.sources ?? [],
+    sources: pluginData?.sources ?? [],
     abxIds,
     orgIds,
     p,
