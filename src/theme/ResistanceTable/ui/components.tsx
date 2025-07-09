@@ -81,11 +81,13 @@ export const CellTooltipContent = ({
     <div style={{ textAlign: 'left' }}>
       <div><strong>{rowLabel}:</strong> {row.rowLong}</div>
       <div><strong>{colLabel}:</strong> {col.name}</div>
-      {cell.text !== '—' && (
-        <div style={{ marginTop: 4 }}>
-          <strong>Resistance:</strong> {cell.text}
-        </div>
-      )}
+      <div style={{ marginTop: 4 }}>
+        {cell ? (
+          <span><strong>Resistance:</strong> {cell.text}</span>
+        ) : (
+          <span>Keine Daten vorliegen</span>
+        )}
+      </div>
     </div>
   );
 };

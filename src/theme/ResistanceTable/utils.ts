@@ -131,8 +131,8 @@ export const formatMatrix = (
     cols.forEach((c) => {
       const cell = matrix.get(rowId)?.get(c.id);
       row[c.name] = cell
-        ? { text: `${cell.resistance_pct}% (${cell.n_isolates})`, pct: cell.resistance_pct }
-        : { text: '—', pct: undefined };
+        ? { text: `${cell.resistance_pct}% (n=${cell.n_isolates})`, pct: parseFloat(cell.resistance_pct) }
+        : undefined;
     });
     return row;
   });
