@@ -3,6 +3,7 @@ import { usePluginData } from '@docusaurus/useGlobalData';
 import {
   buildMatrix,
   formatMatrix,
+  groupAndSortAntibiotics,
   parseParams,
   resolveIds,
 } from '../utils';
@@ -29,16 +30,34 @@ export function useResistanceTableData(
     [gd],
   );
 
-  const abxIds = useMemo(
-    () =>
-      resolveIds(
-        p.abx,
-        gd?.allAbxIds ?? [],
-        gd?.abxSyn2Id ?? {},
-        pageText,
-      ),
-    [p.abx, gd, pageText],
+  const { allAbxIds, classToAbx: classToAbxObj } = gd;
+
+  const classToAbx = useMemo(
+    () => new Map<string, string[]>(Object.entries(classToAbxObj ?? {})),
+    [classToAbxObj],
   );
+
+  const abxIds = useMemo(() => {
+    const initialIds = resolveIds(
+      p.abx,
+      gd?.allAbxIds ?? [],
+      gd?.abxSyn2Id ?? {},
+      pageText,
+    );
+
+    if (p.abx !== 'auto') return initialIds;
+
+    const expanded = new Set<string>();
+    for (const id of initialIds) {
+      if (classToAbx.has(id)) {
+        classToAbx.get(id)!.forEach(memberId => expanded.add(memberId));
+      } else {
+        expanded.add(id);
+      }
+    }
+    return Array.from(expanded);
+  }, [p.abx, gd, pageText, classToAbx]);
+
   const orgIds = useMemo(
     () =>
       resolveIds(
@@ -58,17 +77,22 @@ export function useResistanceTableData(
     [selectedSource, gd],
   );
 
+  const sortedAbxIds = useMemo(
+    () => groupAndSortAntibiotics(abxIds, allAbxIds, classToAbx),
+    [abxIds, allAbxIds, classToAbx],
+  );
+
   // layout switch
   const { rowIds, colIds, rowsAreAbx } = useMemo(() => {
     const autoLayout =
       p.layout === 'auto' || !p.layout ? 'auto' : p.layout;
-    let rIds = abxIds;
-    let cIds = orgIds;
+    let rIds: string[] = sortedAbxIds;
+    let cIds: string[] = orgIds;
     let rAreAbx = true;
 
     if (autoLayout === 'organisms-rows') {
       rIds = orgIds;
-      cIds = abxIds;
+      cIds = sortedAbxIds;
       rAreAbx = false;
     } else if (autoLayout === 'auto') {
       // Heuristic for auto layout: if there are significantly more organisms
@@ -76,12 +100,12 @@ export function useResistanceTableData(
       // a very wide, hard-to-read table.
       if (orgIds.length > 4 && abxIds.length && orgIds.length / abxIds.length > 2) {
         rIds = orgIds;
-        cIds = abxIds;
+        cIds = sortedAbxIds;
         rAreAbx = false;
       }
     }
     return { rowIds: rIds, colIds: cIds, rowsAreAbx: rAreAbx };
-  }, [p.layout, abxIds, orgIds]);
+  }, [p.layout, sortedAbxIds, orgIds, abxIds]);
 
   const matrix = useMemo(
     () => buildMatrix(rowIds, colIds, rowsAreAbx, resistanceData),
