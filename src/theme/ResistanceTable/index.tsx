@@ -53,6 +53,8 @@ export default function ResistanceTable({
   const tableRef = useRef<HTMLTableElement>(null);
 
   const {
+    isLoading,
+    error,
     resistanceData,
     data,
     cols,
@@ -66,7 +68,7 @@ export default function ResistanceTable({
   // This layout effect is the core of the "Render, Shrink, then Show" logic.
   // It runs synchronously after a render but before the browser paints.
   useIsomorphicLayoutEffect(() => {
-    if (!containerRef.current || !tableRef.current) return;
+    if (isLoading || error || !containerRef.current || !tableRef.current) return;
 
     const containerWidth = containerRef.current.clientWidth;
     const tableWidth = tableRef.current.scrollWidth;
@@ -88,7 +90,7 @@ export default function ResistanceTable({
       setIsVisible(true);
     }
 
-  }, [display, isVisible, data, cols]); // Rerun if display mode or data changes
+  }, [display, isVisible, data, cols, isLoading, error]); // Rerun if display mode or data changes
 
   // This effect handles resizing of the container after the initial render.
   useIsomorphicLayoutEffect(() => {
@@ -179,6 +181,70 @@ export default function ResistanceTable({
     );
   };
 
+  const renderContent = () => {
+    if (isLoading) {
+      return <div className={styles.placeholder}>Loading resistance data...</div>;
+    }
+    if (error) {
+      return <div className={styles.error}>Error: {error.message}</div>;
+    }
+    if (!resistanceData || !data || !cols) {
+      return <div className={styles.error}>No data available.</div>;
+    }
+    if (!resistanceData.length || !data.length) {
+      return (
+        <div className={styles.noDataContainer}>
+          <p><strong>Resistance Table</strong></p>
+          <p>No matching resistance data found in this source.</p>
+          <ul>
+            <li>Antibiotics: {p.abx || 'all'}</li>
+            <li>Organisms: {p.org || 'all'}</li>
+          </ul>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
+        <div className={styles.tableContainer}>
+          <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+            <TableHeader
+              cols={cols}
+              displayMode={display}
+              hoveredCol={hover.col}
+              onSetHover={handleSetHover}
+              onClearHover={handleClearHover}
+              styles={styles}
+            />
+            <TableBody
+              data={data}
+              cols={cols}
+              displayMode={display}
+              rowsAreAbx={rowsAreAbx}
+              hoveredRow={hover.row}
+              hoveredCol={hover.col}
+              onSetHover={handleSetHover}
+              onClearHover={handleClearHover}
+              onShowTooltip={showTooltip}
+              onHideTooltip={hideTooltip}
+              styles={styles}
+              colorMode={colorMode}
+            />
+          </table>
+          <Legend cols={cols} displayMode={display} styles={styles} />
+          <div className={styles.sourceInfo}>
+            {renderHiddenInfo()}
+            Source:{' '}
+            <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">
+              {selectedSource.long_name}
+            </a>
+          </div>
+        </div>
+        {!isVisible && !isLoading && <div className={styles.placeholder}>Calculating table layout...</div>}
+      </div>
+    );
+  };
+
   if (!sources) {
     return <div className={styles.error}>Error: plugin data not found.</div>;
   }
@@ -186,7 +252,7 @@ export default function ResistanceTable({
   return (
     <RadixTooltip.Provider>
       <div ref={containerRef}>
-        {sources.length > 0 && selectedSource && (
+        {sources.length > 0 && (
           <SourceSwitcher
             sources={sources}
             selected={selectedSource}
@@ -194,57 +260,7 @@ export default function ResistanceTable({
             styles={styles}
           />
         )}
-
-        <div style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
-          {!selectedSource ? (
-            <div className={styles.error}>Loading data source…</div>
-          ) : !resistanceData.length || !data.length ? (
-            <div className={styles.noDataContainer}>
-              <p><strong>Resistance Table</strong></p>
-              <p>No matching resistance data found in this source.</p>
-              <ul>
-                <li>Antibiotics: {p.abx || 'all'}</li>
-                <li>Organisms: {p.org || 'all'}</li>
-              </ul>
-            </div>
-          ) : (
-            <div className={styles.tableContainer}>
-              <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
-                <TableHeader
-                  cols={cols}
-                  displayMode={display}
-                  hoveredCol={hover.col}
-                  onSetHover={handleSetHover}
-                  onClearHover={handleClearHover}
-                  styles={styles}
-                />
-                <TableBody
-                  data={data}
-                  cols={cols}
-                  displayMode={display}
-                  rowsAreAbx={rowsAreAbx}
-                  hoveredRow={hover.row}
-                  hoveredCol={hover.col}
-                  onSetHover={handleSetHover}
-                  onClearHover={handleClearHover}
-                  onShowTooltip={showTooltip}
-                  onHideTooltip={hideTooltip}
-                  styles={styles}
-                  colorMode={colorMode}
-                />
-              </table>
-              <Legend cols={cols} displayMode={display} styles={styles} />
-              <div className={styles.sourceInfo}>
-                {renderHiddenInfo()}
-                Source:{' '}
-                <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">
-                  {selectedSource.long_name}
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
-        {!isVisible && <div className={styles.placeholder}>Calculating table layout...</div>}
+        {renderContent()}
       </div>
 
       {/* This is the single, global tooltip that provides high performance. */}

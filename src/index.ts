@@ -1,6 +1,11 @@
 import type { LoadContext, Plugin } from "@docusaurus/types";
 import { join } from "path";
-import { loadData, mkSynMap } from "./data";
+import { ensureDirSync, writeJsonSync } from "fs-extra";
+import {
+  loadSharedData,
+  loadResistanceDataForSource,
+  mkSynMap,
+} from "./data";
 
 interface Opts {
   dataDir?: string;
@@ -15,20 +20,43 @@ export default function pluginResist(
   ctx: LoadContext,
   opts: Opts = {}
 ): Plugin {
-  const { siteDir } = ctx;
+  const { siteDir, generatedFilesDir } = ctx;
   const dataDir = opts.dataDir ?? "data";
   const files = {
     antibiotics: opts.files?.antibiotics ?? "antibiotics.json",
     organisms: opts.files?.organisms ?? "organisms.json",
     sources: opts.files?.sources ?? "data-src.json",
   };
+  const dataPath = join(siteDir, dataDir);
+  const pluginDataDir = join(generatedFilesDir, "docusaurus-plugin-resistogram");
+  ensureDirSync(pluginDataDir);
 
   return {
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const { abxClasses, abxItems, org, sources, resistanceData } =
-        await loadData(join(siteDir, dataDir), files);
+      const { abxClasses, abxItems, org, sources } = await loadSharedData(
+        dataPath,
+        files
+      );
+
+      const resistanceDataFileNames = new Map<string, string>();
+      for (const source of sources) {
+        const resistanceData = await loadResistanceDataForSource(
+          source,
+          dataPath
+        );
+
+        const headers = Object.keys(resistanceData[0] || {});
+        const compressedData = [
+          headers,
+          ...resistanceData.map((row) => headers.map((h) => row[h])),
+        ];
+
+        const fileName = `resist-data-${source.file}.json`;
+        writeJsonSync(join(pluginDataDir, fileName), compressedData);
+        resistanceDataFileNames.set(source.file, fileName);
+      }
 
       const abx = [...abxClasses, ...abxItems];
       const abxSyn2Id = mkSynMap(abx);
@@ -60,7 +88,7 @@ export default function pluginResist(
           new Map([...abx, ...org].map((r: any) => [r.id, r.short_name]))
         ),
         sources,
-        resistanceData: Object.fromEntries(resistanceData),
+        resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
         allAbxIds: abx.map((r: any) => r.id),
         allOrgIds: org.map((r: any) => r.id),
       };
@@ -70,6 +98,17 @@ export default function pluginResist(
 
     getThemePath() {
       return "./theme";
+    },
+
+    configureWebpack() {
+      return {
+        devServer: {
+          static: {
+            directory: pluginDataDir,
+            publicPath: '/assets/json',
+          },
+        },
+      };
     },
   };
 }
