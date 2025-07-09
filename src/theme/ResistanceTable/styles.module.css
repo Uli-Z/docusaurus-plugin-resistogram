@@ -54,7 +54,9 @@
 .resistanceTable td {
   padding: 0.5rem;
   text-align: left;
-  border-bottom: 1px solid var(--rt-border-color);
+  /* Using outline instead of border to prevent layout shifts on highlight */
+  outline: 1px solid var(--rt-border-color);
+  outline-offset: -1px; /* Draw the outline inside, mimicking border */
   color: var(--rt-text-color);
 }
 
