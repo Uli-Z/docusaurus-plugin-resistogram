@@ -27,15 +27,25 @@ export default function pluginResist(
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const { abx, org, sources, resistanceData } = await loadData(
-        join(siteDir, dataDir),
-        files
-      );
+      const { abxClasses, abxItems, org, sources, resistanceData } =
+        await loadData(join(siteDir, dataDir), files);
 
+      const abx = [...abxClasses, ...abxItems];
       const abxSyn2Id = mkSynMap(abx);
       const orgSyn2Id = mkSynMap(org);
 
+      const classToAbx = new Map<string, string[]>();
+      for (const abx of abxItems) {
+        if (abx.class) {
+          if (!classToAbx.has(abx.class)) classToAbx.set(abx.class, []);
+          classToAbx.get(abx.class)!.push(abx.id);
+        }
+      }
+
       const globalData = {
+        abxClasses,
+        abxItems,
+        classToAbx: Object.fromEntries(classToAbx),
         abxSyn2Id: Object.fromEntries(abxSyn2Id),
         orgSyn2Id: Object.fromEntries(orgSyn2Id),
         id2MainSyn: Object.fromEntries(

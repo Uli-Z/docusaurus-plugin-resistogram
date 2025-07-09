@@ -138,3 +138,42 @@ export const formatMatrix = (
   });
   return { data, cols };
 };
+
+export const groupAndSortAntibiotics = (
+  idsToShow: string[],
+  allOriginalIds: string[],
+  classToAbx: Map<string, string[]>,
+) => {
+  const finalOrder: string[] = [];
+  const idsToShowSet = new Set(idsToShow);
+  const processed = new Set<string>();
+
+  for (const id of allOriginalIds) {
+    if (processed.has(id)) {
+      continue;
+    }
+
+    const isClass = classToAbx.has(id);
+
+    if (isClass) {
+      const members = classToAbx.get(id) ?? [];
+      // Don't add the class itself to the final list, just its members.
+      // Process the class so we don't handle its members individually later.
+      processed.add(id);
+
+      for (const memberId of members) {
+        if (idsToShowSet.has(memberId) && !processed.has(memberId)) {
+          finalOrder.push(memberId);
+          processed.add(memberId);
+        }
+      }
+    } else {
+      // It's an antibiotic. Add it if it's in the show list.
+      if (idsToShowSet.has(id)) {
+        finalOrder.push(id);
+        processed.add(id);
+      }
+    }
+  }
+  return finalOrder;
+};

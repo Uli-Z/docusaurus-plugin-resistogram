@@ -30,9 +30,10 @@ export const loadData = async (
     resistanceData.set(source.file, csvData);
   }
 
-  const abx = [...abxData.classes, ...abxData.antibiotics];
+  const abxClasses = abxData.classes;
+  const abxItems = abxData.antibiotics;
 
-  return { abx, org, sources, resistanceData };
+  return { abxClasses, abxItems, org, sources, resistanceData };
 };
 
 export const mkSynMap = (rows: any[]) =>
