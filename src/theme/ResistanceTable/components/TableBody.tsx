@@ -15,6 +15,8 @@ interface TableBodyProps {
   hoveredCol: number | null;
   onSetHover: (row: number, col: number) => void;
   onClearHover: () => void;
+  onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
+  onHideTooltip: () => void;
   styles: any;
   colorMode: 'dark' | 'light';
 }
@@ -28,6 +30,8 @@ export const TableBody = ({
   hoveredCol,
   onSetHover,
   onClearHover,
+  onShowTooltip,
+  onHideTooltip,
   styles,
   colorMode,
 }: TableBodyProps) => {
@@ -45,6 +49,8 @@ export const TableBody = ({
           hoveredCol={hoveredCol}
           onSetHover={onSetHover}
           onClearHover={onClearHover}
+          onShowTooltip={onShowTooltip}
+          onHideTooltip={onHideTooltip}
           styles={styles}
           colorMode={colorMode}
         />

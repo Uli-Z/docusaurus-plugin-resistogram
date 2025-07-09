@@ -18,6 +18,8 @@ interface TableRowProps {
   hoveredCol: number | null;
   onSetHover: (row: number, col: number) => void;
   onClearHover: () => void;
+  onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
+  onHideTooltip: () => void;
   styles: any;
   colorMode: 'dark' | 'light';
 }
@@ -33,6 +35,8 @@ export const TableRow = React.memo(
     hoveredCol,
     onSetHover,
     onClearHover,
+    onShowTooltip,
+    onHideTooltip,
     styles,
     colorMode,
   }: TableRowProps) => {
@@ -75,6 +79,8 @@ export const TableRow = React.memo(
             hoveredCol={hoveredCol}
             onSetHover={onSetHover}
             onClearHover={onClearHover}
+            onShowTooltip={onShowTooltip}
+            onHideTooltip={onHideTooltip}
             styles={styles}
             colorMode={colorMode}
           />
