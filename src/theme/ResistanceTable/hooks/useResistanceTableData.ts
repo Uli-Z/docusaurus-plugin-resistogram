@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { usePluginData } from '@docusaurus/useGlobalData';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 import {
   buildMatrix,
   formatMatrix,
@@ -7,11 +8,35 @@ import {
   parseParams,
   resolveIds,
 } from '../utils';
+import { Source } from '../../../types';
+
+function decompressData(data: any[][]): any[] {
+  if (!data || data.length < 2) {
+    return [];
+  }
+  const [headers, ...rows] = data;
+  return rows.map((row) => {
+    const obj: { [key: string]: any } = {};
+    headers.forEach((header, i) => {
+      obj[header] = row[i];
+    });
+    return obj;
+  });
+}
+
+async function fetchResistanceData(path: string) {
+  const response = await fetch(path);
+  if (!response.ok) {
+    throw new Error(`Network response was not ok: ${response.statusText}`);
+  }
+  const compressedData = await response.json();
+  return decompressData(compressedData);
+}
 
 export function useResistanceTableData(
   paramString: string,
   pageText: string,
-  selectedSource: any,
+  selectedSource: Source | null,
   showEmpty: boolean,
 ) {
   const gd: any = usePluginData(
@@ -19,7 +44,35 @@ export function useResistanceTableData(
     'example-resistogram',
   );
 
+  const [resistanceData, setResistanceData] = useState<any[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
   const p = useMemo(() => parseParams(paramString), [paramString]);
+
+  const fileName = selectedSource ? gd.resistanceDataFileNames?.[selectedSource.file] : null;
+  const dataUrl = useBaseUrl(fileName ? `/assets/json/${fileName}` : null);
+
+  useEffect(() => {
+    if (!dataUrl || !selectedSource || !fileName) {
+      if (!selectedSource) setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    fetchResistanceData(dataUrl)
+      .then(data => {
+        setResistanceData(data);
+      })
+      .catch(err => {
+        setError(err);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [dataUrl, selectedSource]);
 
   const id2Main = useMemo(
     () => new Map<string, string>(Object.entries(gd?.id2MainSyn ?? {})),
@@ -69,14 +122,6 @@ export function useResistanceTableData(
     [p.org, gd, pageText],
   );
 
-  const resistanceData = useMemo(
-    () =>
-      selectedSource && gd?.resistanceData
-        ? gd.resistanceData[selectedSource.file] ?? []
-        : [],
-    [selectedSource, gd],
-  );
-
   const sortedAbxIds = useMemo(
     () => groupAndSortAntibiotics(abxIds, allAbxIds, classToAbx),
     [abxIds, allAbxIds, classToAbx],
@@ -95,9 +140,6 @@ export function useResistanceTableData(
       cIds = sortedAbxIds;
       rAreAbx = false;
     } else if (autoLayout === 'auto') {
-      // Heuristic for auto layout: if there are significantly more organisms
-      // than antibiotics, it's better to put organisms in rows to avoid
-      // a very wide, hard-to-read table.
       if (orgIds.length > 4 && abxIds.length && orgIds.length / abxIds.length > 2) {
         rIds = orgIds;
         cIds = sortedAbxIds;
@@ -108,7 +150,7 @@ export function useResistanceTableData(
   }, [p.layout, sortedAbxIds, orgIds, abxIds]);
 
   const matrix = useMemo(
-    () => buildMatrix(rowIds, colIds, rowsAreAbx, resistanceData),
+    () => buildMatrix(rowIds, colIds, rowsAreAbx, resistanceData ?? []),
     [rowIds, colIds, rowsAreAbx, resistanceData],
   );
 
@@ -129,6 +171,8 @@ export function useResistanceTableData(
   );
 
   return {
+    isLoading,
+    error,
     resistanceData,
     data,
     cols,

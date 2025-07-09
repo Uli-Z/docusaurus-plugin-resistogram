@@ -1,8 +1,20 @@
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { parse } from "csv-parse/sync";
+import { Source } from "../types";
 
-const CSV = (txt: string) => parse(txt, { columns: true });
+const CSV = (txt: string) =>
+  parse(txt, {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+    cast: (value, context) => {
+      if (context.header) return value;
+      if (context.column === 'resistance') return parseFloat(value);
+      if (context.column === 'total') return parseInt(value, 10);
+      return value;
+    },
+  });
 
 const loadJson = (dir: string, file: string) =>
   readFile(join(dir, file), "utf8").then(JSON.parse);
@@ -10,7 +22,7 @@ const loadJson = (dir: string, file: string) =>
 const loadCsv = (dir: string, file: string) =>
   readFile(join(dir, file), "utf8").then(CSV);
 
-export const loadData = async (
+export const loadSharedData = async (
   dir: string,
   files: {
     antibiotics: string;
@@ -24,16 +36,15 @@ export const loadData = async (
     loadJson(dir, files.sources),
   ]);
 
-  const resistanceData = new Map<string, any[]>();
-  for (const source of sources) {
-    const csvData = await loadCsv(dir, source.file);
-    resistanceData.set(source.file, csvData);
-  }
-
   const abxClasses = abxData.classes;
   const abxItems = abxData.antibiotics;
 
-  return { abxClasses, abxItems, org, sources, resistanceData };
+  return { abxClasses, abxItems, org, sources };
+};
+
+export const loadResistanceDataForSource = (source: Source, dataDir: string) => {
+  const csvPath = join(dataDir, source.file);
+  return readFile(csvPath, "utf8").then(CSV);
 };
 
 export const mkSynMap = (rows: any[]) =>
