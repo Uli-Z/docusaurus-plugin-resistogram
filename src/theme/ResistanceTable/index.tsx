@@ -18,45 +18,6 @@ import styles from './styles.module.css';
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-// A simple, non-interactive table used only for measuring its width
-// to decide which display mode to use (full, compact, etc.).
-const GhostTable = React.forwardRef<
-  HTMLTableElement,
-  {
-    displayMode: 'full' | 'compact' | 'superCompact';
-    cols: any[];
-    data: any[];
-    styles: any;
-  }
->(({ displayMode, cols, data, styles }, ref) => (
-  <table ref={ref} className={styles.resistanceTable}>
-    <thead>
-      <tr>
-        <th></th>
-        {cols.map((c) => (
-          <th key={c.id}>
-            {displayMode === 'full'
-              ? c.name
-              : displayMode === 'compact'
-              ? c.short
-              : 'X'}
-          </th>
-        ))}
-      </tr>
-    </thead>
-    <tbody>
-      {data.map((row) => (
-        <tr key={row.rowLong}>
-          <td>{displayMode === 'full' ? row.rowLong : row.rowShort}</td>
-          {cols.map((c) => (
-            <td key={c.id}>-</td>
-          ))}
-        </tr>
-      ))}
-    </tbody>
-  </table>
-));
-
 // This is a virtual, invisible trigger for the single global tooltip.
 // Radix UI will use this element's position to place the tooltip.
 // We manually update its position to match the currently hovered cell.
@@ -78,7 +39,7 @@ export default function ResistanceTable({
   // State for table interactivity and display
   const [showEmpty, setShowEmpty] = useState(false);
   const [display, setDisplay] = useState<'full' | 'compact' | 'superCompact'>('full');
-  const [ready, setReady] = useState(false);
+  const [isVisible, setIsVisible] = useState(false); // Start as invisible
   const [hover, setHover] = useState<{ row: number | null; col: number | null }>({ row: null, col: null });
   const [selectedSource, setSelectedSource] = useState<any>(null);
 
@@ -87,11 +48,9 @@ export default function ResistanceTable({
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const virtualTriggerRef = useRef<HTMLSpanElement>(null);
 
-  // Refs for width measurement
+  // Refs for measurement
   const containerRef = useRef<HTMLDivElement>(null);
-  const fullRef = useRef<HTMLTableElement>(null);
-  const compactRef = useRef<HTMLTableElement>(null);
-  const superRef = useRef<HTMLTableElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
 
   const {
     resistanceData,
@@ -104,52 +63,57 @@ export default function ResistanceTable({
     p,
   } = useResistanceTableData(paramString, pageText, selectedSource, showEmpty);
 
-  // Pre-calculate the width thresholds for each display mode.
-  // This is an optimization to avoid querying scrollWidth on every resize event.
-  const widths = useMemo(() => {
-    if (!ready || !fullRef.current || !compactRef.current) {
-      return { full: 9999, compact: 9998 };
-    }
-    return {
-      full: fullRef.current.scrollWidth,
-      compact: compactRef.current.scrollWidth,
-    };
-  }, [ready, sources, showEmpty]); // Recalculate if the underlying data changes
+  // This layout effect is the core of the "Render, Shrink, then Show" logic.
+  // It runs synchronously after a render but before the browser paints.
+  useIsomorphicLayoutEffect(() => {
+    if (!containerRef.current || !tableRef.current) return;
 
-  // This effect sets up the robust ResizeObserver.
+    const containerWidth = containerRef.current.clientWidth;
+    const tableWidth = tableRef.current.scrollWidth;
+
+    const HYST = 2; // Hysteresis
+
+    // 1. Shrink if necessary
+    if (display === 'full' && tableWidth > containerWidth + HYST) {
+      setDisplay('compact');
+      return; // Re-render will trigger this effect again
+    }
+    if (display === 'compact' && tableWidth > containerWidth + HYST) {
+      setDisplay('superCompact');
+      return; // Re-render will trigger this effect again
+    }
+
+    // 2. Once stable, make it visible
+    if (!isVisible) {
+      setIsVisible(true);
+    }
+
+  }, [display, isVisible, data, cols]); // Rerun if display mode or data changes
+
+  // This effect handles resizing of the container after the initial render.
   useIsomorphicLayoutEffect(() => {
     if (!containerRef.current) return;
 
     const node = containerRef.current;
     let raf = 0;
 
-    const HYST = 2; // Hysteresis in pixels to prevent jitter
-    const nextMode = (w: number) =>
-      w >= widths.full + HYST ? 'full' :
-      w >= widths.compact + HYST ? 'compact' : 'superCompact';
-
     const ro = new ResizeObserver(([entry]) => {
       cancelAnimationFrame(raf);
-      // Running the state update inside requestAnimationFrame decouples it
-      // from the RO callback, preventing the "loop" error.
       raf = requestAnimationFrame(() => {
-        const width = entry.contentBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
-        setDisplay(prevMode => {
-          const newMode = nextMode(width);
-          // Only update state if the mode has actually changed.
-          return newMode === prevMode ? prevMode : newMode;
-        });
+        // On resize, we reset to 'full' and let the shrink logic handle it.
+        // This correctly handles cases where the container grows.
+        setDisplay('full');
+        setIsVisible(false); // Hide to prevent flicker on resize
       });
     });
 
-    // Observe the content box to ignore changes from borders or scrollbars.
     ro.observe(node, { box: 'content-box' });
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [widths]); // Re-observe if the width thresholds change.
+  }, []); // Only runs once to attach the observer
 
 
   // Effect to set the initial data source
@@ -158,14 +122,12 @@ export default function ResistanceTable({
   }, [sources, selectedSource]);
 
   // Effect to update visibility of empty rows/cols based on params
-  useEffect(() => setShowEmpty(p.showEmpty === 'true'), [p.showEmpty]);
-
-  // Effect to mark the component as "ready" once the ghost tables have been rendered.
-  useIsomorphicLayoutEffect(() => {
-    if (fullRef.current && compactRef.current && superRef.current) {
-      if (!ready) setReady(true);
-    }
-  }, [sources, showEmpty, ready]);
+  useEffect(() => {
+    setShowEmpty(p.showEmpty === 'true');
+    // When params change, we need to re-evaluate the layout
+    setDisplay('full');
+    setIsVisible(false);
+  }, [p.showEmpty]);
 
 
   const showTooltipTimeout = useRef<NodeJS.Timeout>();
@@ -233,27 +195,21 @@ export default function ResistanceTable({
           />
         )}
 
-        <div style={{ visibility: 'hidden', height: 0, overflow: 'hidden' }}>
-          <GhostTable ref={fullRef} displayMode="full" cols={cols} data={data} styles={styles} />
-          <GhostTable ref={compactRef} displayMode="compact" cols={cols} data={data} styles={styles} />
-          <GhostTable ref={superRef} displayMode="superCompact" cols={cols} data={data} styles={styles} />
-        </div>
-
-        {!selectedSource ? (
-          <div className={styles.error}>Loading data source…</div>
-        ) : !resistanceData.length || !data.length ? (
-          <div className={styles.noDataContainer}>
-            <p><strong>Resistance Table</strong></p>
-            <p>No matching resistance data found in this source.</p>
-            <ul>
-              <li>Antibiotics: {p.abx || 'all'}</li>
-              <li>Organisms: {p.org || 'all'}</li>
-            </ul>
-          </div>
-        ) : (
-          ready && (
+        <div style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
+          {!selectedSource ? (
+            <div className={styles.error}>Loading data source…</div>
+          ) : !resistanceData.length || !data.length ? (
+            <div className={styles.noDataContainer}>
+              <p><strong>Resistance Table</strong></p>
+              <p>No matching resistance data found in this source.</p>
+              <ul>
+                <li>Antibiotics: {p.abx || 'all'}</li>
+                <li>Organisms: {p.org || 'all'}</li>
+              </ul>
+            </div>
+          ) : (
             <div className={styles.tableContainer}>
-              <table className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+              <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                 <TableHeader
                   cols={cols}
                   displayMode={display}
@@ -286,8 +242,9 @@ export default function ResistanceTable({
                 </a>
               </div>
             </div>
-          )
-        )}
+          )}
+        </div>
+        {!isVisible && <div className={styles.placeholder}>Calculating table layout...</div>}
       </div>
 
       {/* This is the single, global tooltip that provides high performance. */}
