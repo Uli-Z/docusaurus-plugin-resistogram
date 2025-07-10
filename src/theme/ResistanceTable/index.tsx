@@ -5,7 +5,6 @@ import React, {
   useRef,
   useState,
   useCallback,
-  useMemo,
 } from 'react';
 import * as RadixTooltip from '@radix-ui/react-tooltip';
 import { useResistanceTableData } from './hooks/useResistanceTableData';
@@ -206,38 +205,48 @@ export default function ResistanceTable({
 
     return (
       <div style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
-        <div className={styles.tableContainer}>
-          <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
-            <TableHeader
-              cols={cols}
-              displayMode={display}
-              hoveredCol={hover.col}
-              onSetHover={handleSetHover}
-              onClearHover={handleClearHover}
+        <div className={styles.rootContainer}>
+          {sources.length > 0 && (
+            <SourceSwitcher
+              sources={sources}
+              selected={selectedSource}
+              onSelect={setSelectedSource}
               styles={styles}
             />
-            <TableBody
-              data={data}
-              cols={cols}
-              displayMode={display}
-              rowsAreAbx={rowsAreAbx}
-              hoveredRow={hover.row}
-              hoveredCol={hover.col}
-              onSetHover={handleSetHover}
-              onClearHover={handleClearHover}
-              onShowTooltip={showTooltip}
-              onHideTooltip={hideTooltip}
-              styles={styles}
-              colorMode={colorMode}
-            />
-          </table>
-          <Legend cols={cols} displayMode={display} styles={styles} />
-          <div className={styles.sourceInfo}>
-            {renderHiddenInfo()}
-            Source:{' '}
-            <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">
-              {selectedSource.long_name}
-            </a>
+          )}
+          <div className={styles.tableContainer}>
+            <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+              <TableHeader
+                cols={cols}
+                displayMode={display}
+                hoveredCol={hover.col}
+                onSetHover={handleSetHover}
+                onClearHover={handleClearHover}
+                styles={styles}
+              />
+              <TableBody
+                data={data}
+                cols={cols}
+                displayMode={display}
+                rowsAreAbx={rowsAreAbx}
+                hoveredRow={hover.row}
+                hoveredCol={hover.col}
+                onSetHover={handleSetHover}
+                onClearHover={handleClearHover}
+                onShowTooltip={showTooltip}
+                onHideTooltip={hideTooltip}
+                styles={styles}
+                colorMode={colorMode}
+              />
+            </table>
+            <Legend cols={cols} displayMode={display} styles={styles} />
+            <div className={styles.sourceInfo}>
+              {renderHiddenInfo()}
+              Source:{' '}
+              <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">
+                {selectedSource.long_name}
+              </a>
+            </div>
           </div>
         </div>
         {!isVisible && !isLoading && <div className={styles.placeholder}>Calculating table layout...</div>}
@@ -252,14 +261,6 @@ export default function ResistanceTable({
   return (
     <RadixTooltip.Provider>
       <div ref={containerRef}>
-        {sources.length > 0 && (
-          <SourceSwitcher
-            sources={sources}
-            selected={selectedSource}
-            onSelect={setSelectedSource}
-            styles={styles}
-          />
-        )}
         {renderContent()}
       </div>
 

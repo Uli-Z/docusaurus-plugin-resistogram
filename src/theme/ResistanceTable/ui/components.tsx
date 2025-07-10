@@ -21,7 +21,7 @@ export const SourceSwitcher = ({
       <DropdownMenu.Trigger asChild>
         <button className={styles.sourceSwitcherTrigger}>
           <span className={styles.sourceSwitcherTriggerInner}>
-            <span>Source: {selected?.short_name ?? '—'}</span>
+            <span>{selected?.short_name ?? '—'}</span>
             <ChevronDownIcon className={styles.sourceSwitcherChevron} aria-hidden />
           </span>
         </button>
