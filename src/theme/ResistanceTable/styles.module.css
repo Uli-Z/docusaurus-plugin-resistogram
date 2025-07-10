@@ -13,6 +13,7 @@
   --rt-empty-cell-background: #f2f2f2;
   --rt-tooltip-background: rgba(60, 60, 60, 0.9);
   --rt-tooltip-text: #fff;
+  --rt-tab-radius: 5px;
 }
 
 [data-theme='dark'] {
@@ -38,16 +39,21 @@
    Resistance Table
    ============================================================================ */
 
+.rootContainer {
+  display: inline-block;
+}
+
 .resistanceTable {
-  width: 100%;
-  overflow-x: auto;
+  width: auto;
   border-collapse: separate;
   border-spacing: 0;
   margin-bottom: 0;
 }
 
 .tableContainer {
-  display: inline-block;
+  border: 1px solid var(--rt-border-color);
+  border-radius: 0 var(--rt-tab-radius) var(--rt-tab-radius) var(--rt-tab-radius);
+  margin-top: -1px;
 }
 
 .resistanceTable th,
@@ -61,22 +67,22 @@
 }
 
 /* ============================================================================
-   Source Switcher
+   Source Switcher as Tab-Dropdown
    ============================================================================ */
 
-.sourceSwitcherDisplay {
-  margin-bottom: 1rem;
-  font-style: italic;
-}
-
 .sourceSwitcherTrigger {
-  background-color: var(--rt-subtle-background-hover);
+  background-color: var(--rt-subtle-background);
   border: 1px solid var(--rt-border-color);
   color: var(--rt-text-color);
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+  padding: 0.6rem 1.2rem;
+  border-top-left-radius: var(--rt-tab-radius);
+  border-top-right-radius: var(--rt-tab-radius);
   cursor: pointer;
-  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+  border-bottom: 1px solid var(--rt-background-color);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .sourceSwitcherTriggerInner {
@@ -88,6 +94,7 @@
 .sourceSwitcherChevron {
   width: 16px;
   height: 16px;
+  color: var(--rt-source-info-text);
 }
 
 .sourceSwitcherContent {
@@ -95,7 +102,6 @@
   border: 1px solid var(--rt-border-color);
   border-radius: 4px;
   padding: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 10;
 }
 
@@ -108,6 +114,7 @@
 .sourceSwitcherItem:hover {
   background-color: var(--rt-subtle-background-hover);
 }
+
 
 /* ============================================================================
    Tooltip
@@ -133,8 +140,7 @@
 
 .legend {
   background-color: var(--rt-subtle-background);
-  border: 1px solid var(--rt-border-color);
-  border-top: none;
+  border-top: 1px solid var(--rt-border-color);
   padding: 0.75rem;
   font-size: 0.9rem;
   color: var(--rt-text-color);
@@ -146,11 +152,12 @@
 
 .sourceInfo {
   background-color: var(--rt-source-info-background);
-  border: 1px solid var(--rt-border-color);
-  border-top: none;
+  border-top: 1px solid var(--rt-border-color);
   padding: 0.25rem 0.75rem;
   font-size: 0.65rem;
   color: var(--rt-source-info-text);
+  border-bottom-left-radius: var(--rt-tab-radius);
+  border-bottom-right-radius: var(--rt-tab-radius);
 }
 
 .sourceInfo a {
@@ -167,8 +174,6 @@
    ============================================================================ */
 
 .noDataContainer {
-  border: 1px solid var(--rt-border-color);
-  border-bottom: none; /* The sourceInfo will have the bottom border */
   padding: 1rem;
   background-color: var(--rt-subtle-background); /* A light background */
   color: var(--rt-text-color);
