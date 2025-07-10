@@ -54,6 +54,8 @@
   border: 1px solid var(--rt-border-color);
   border-radius: 0 var(--rt-tab-radius) var(--rt-tab-radius) var(--rt-tab-radius);
   margin-top: -1px;
+  /* Needed for the overlay */
+  position: relative;
 }
 
 .resistanceTable th,
@@ -193,4 +195,52 @@
   display: block;
   margin: -0.5rem; /* Counteract the cell's default padding */
   padding: 0.5rem; /* Add the padding back to the content */
+}
+
+/* ============================================================================
+   Loading States
+   ============================================================================ */
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 2rem;
+  color: var(--rt-source-info-text);
+  font-style: italic;
+  min-height: 150px; /* Give it some height */
+}
+
+.tableOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 var(--rt-tab-radius) var(--rt-tab-radius);
+}
+
+[data-theme='dark'] .tableOverlay {
+  background-color: rgba(30, 30, 30, 0.7);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--rt-subtle-background-hover);
+  border-top-color: var(--rt-text-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
