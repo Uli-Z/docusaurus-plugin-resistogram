@@ -46,7 +46,7 @@ export const TableCell = React.memo(
     // It is responsible for two things:
     // 1. Setting the hover state for row/column highlighting.
     // 2. Showing the tooltip by passing its content and the target element
-    //    to the parent component.
+    //    to the parent component. On touch devices, this handler is triggered by onClick.
     const handleMouseEnter = (event: React.MouseEvent<HTMLTableCellElement>) => {
       onSetHover(rowIndex, colIndex);
       const content = (
@@ -74,6 +74,7 @@ export const TableCell = React.memo(
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onClick={handleMouseEnter}
       >
         <span className={styles.fullCellTrigger}>
           {cell ? `${cell.pct}%` : '—'}

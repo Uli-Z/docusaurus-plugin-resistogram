@@ -1,5 +1,4 @@
 import React from 'react';
-import * as RadixTooltip from '@radix-ui/react-tooltip';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 
@@ -41,28 +40,6 @@ export const SourceSwitcher = ({
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
   );
-
-export const Tip = ({
-  label,
-  children,
-  styles,
-}: {
-  label: React.ReactNode;
-  children: React.ReactNode;
-  styles: any;
-}) => (
-  <RadixTooltip.Root delayDuration={0}>
-    <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
-    <RadixTooltip.Portal>
-      <RadixTooltip.Content sideOffset={4} className={styles.tooltipContent}>
-        {label}
-        <RadixTooltip.Arrow width={8} height={4} className={styles.tooltipArrow} />
-      </RadixTooltip.Content>
-    </RadixTooltip.Portal>
-  </RadixTooltip.Root>
-);
-
-
 
 export const CellTooltipContent = ({
   row,

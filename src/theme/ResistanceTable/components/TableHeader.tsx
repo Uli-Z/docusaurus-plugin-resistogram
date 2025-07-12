@@ -11,6 +11,8 @@ interface TableHeaderProps {
   hoveredCol: number | null;
   onSetHover: (row: number, col: number) => void;
   onClearHover: () => void;
+  onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
+  onHideTooltip: () => void;
   styles: any;
 }
 
@@ -20,6 +22,8 @@ export const TableHeader = ({
   hoveredCol,
   onSetHover,
   onClearHover,
+  onShowTooltip,
+  onHideTooltip,
   styles,
 }: TableHeaderProps) => {
   const abxCol = { whiteSpace: 'nowrap', width: '1%' } as const;
@@ -37,6 +41,8 @@ export const TableHeader = ({
             hoveredCol={hoveredCol}
             onSetHover={onSetHover}
             onClearHover={onClearHover}
+            onShowTooltip={onShowTooltip}
+            onHideTooltip={onHideTooltip}
             styles={styles}
           />
         ))}

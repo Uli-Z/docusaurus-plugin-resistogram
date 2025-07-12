@@ -226,6 +226,8 @@ export default function ResistanceTable({
               hoveredCol={hover.col}
               onSetHover={handleSetHover}
               onClearHover={handleClearHover}
+              onShowTooltip={showTooltip}
+              onHideTooltip={hideTooltip}
               styles={styles}
             />
             <TableBody
@@ -284,7 +286,17 @@ export default function ResistanceTable({
       </div>
 
       {/* This is the single, global tooltip that provides high performance. */}
-      <RadixTooltip.Root open={tooltipOpen} onOpenChange={setTooltipOpen}>
+      <RadixTooltip.Root
+        open={tooltipOpen}
+        onOpenChange={(isOpen) => {
+          setTooltipOpen(isOpen);
+          // When the tooltip closes (e.g., by clicking outside), clear the hover state
+          // to remove any row/column highlighting. This is key for touch support.
+          if (!isOpen) {
+            handleClearHover();
+          }
+        }}
+      >
         <RadixTooltip.Trigger asChild><VirtualTrigger ref={virtualTriggerRef} /></RadixTooltip.Trigger>
         <RadixTooltip.Portal>
           <RadixTooltip.Content side="top" align="center" sideOffset={5} className={styles.tooltipContent}>

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Tip } from '../ui/components';
 import { hl } from '../utils';
 
 // Mock types
@@ -13,6 +12,8 @@ interface TableHeaderCellProps {
   hoveredCol: number | null;
   onSetHover: (row: number, col: number) => void;
   onClearHover: () => void;
+  onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
+  onHideTooltip: () => void;
   styles: any;
 }
 
@@ -24,26 +25,30 @@ export const TableHeaderCell = React.memo(
     hoveredCol,
     onSetHover,
     onClearHover,
+    onShowTooltip,
+    onHideTooltip,
     styles,
   }: TableHeaderCellProps) => {
     const highlight = hoveredCol === colIndex;
 
+    const handleMouseEnter = (event: React.MouseEvent<HTMLTableCellElement>) => {
+      onSetHover(-1, colIndex);
+      if (displayMode !== 'full') {
+        onShowTooltip(col.name, event.currentTarget);
+      }
+    };
+
+    const handleMouseLeave = () => {
+      onClearHover();
+      onHideTooltip();
+    };
+
     const renderContent = () => {
       switch (displayMode) {
         case 'superCompact':
-          return (
-            <Tip label={col.name} styles={styles}>
-              <span className={styles.fullCellTrigger}>{`[${
-                colIndex + 1
-              }]`}</span>
-            </Tip>
-          );
+          return `[${colIndex + 1}]`;
         case 'compact':
-          return (
-            <Tip label={col.name} styles={styles}>
-              <span className={styles.fullCellTrigger}>{col.short}</span>
-            </Tip>
-          );
+          return col.short;
         default:
           return col.name;
       }
@@ -55,10 +60,11 @@ export const TableHeaderCell = React.memo(
           cursor: displayMode !== 'full' ? 'help' : 'default',
           ...(highlight ? hl : {}),
         }}
-        onMouseEnter={() => onSetHover(-1, colIndex)}
-        onMouseLeave={onClearHover}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleMouseEnter}
       >
-        {renderContent()}
+        <span className={styles.fullCellTrigger}>{renderContent()}</span>
       </th>
     );
   },

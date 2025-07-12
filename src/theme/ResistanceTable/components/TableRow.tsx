@@ -1,6 +1,5 @@
 import React from 'react';
 import { TableCell } from './TableCell';
-import { Tip } from '../ui/components';
 import { hl } from '../utils';
 
 // Mock types
@@ -43,27 +42,34 @@ export const TableRow = React.memo(
     const highlight = hoveredRow === rowIndex;
     const abxCol = { whiteSpace: 'nowrap', width: '1%' } as const;
 
-    const renderRowHeader = () => {
-      if (displayMode === 'full') {
-        return row.rowLong;
+    const handleMouseEnter = (event: React.MouseEvent<HTMLTableCellElement>) => {
+      onSetHover(rowIndex, -1); // Hover the whole row
+      if (displayMode !== 'full') {
+        onShowTooltip(row.rowLong, event.currentTarget);
       }
-      return (
-        <Tip label={row.rowLong} styles={styles}>
-          <span className={styles.fullCellTrigger}>{row.rowShort}</span>
-        </Tip>
-      );
+    };
+
+    const handleMouseLeave = () => {
+      onClearHover();
+      onHideTooltip();
+    };
+
+    const renderRowHeader = () => {
+      const content = displayMode === 'full' ? row.rowLong : row.rowShort;
+      return <span className={styles.fullCellTrigger}>{content}</span>;
     };
 
     return (
-      <tr
-        onMouseEnter={() => onSetHover(rowIndex, -1)} // Hover the whole row
-        onMouseLeave={onClearHover}
-      >
+      <tr>
         <td
           style={{
             ...abxCol,
             ...(highlight ? hl : {}),
+            cursor: displayMode !== 'full' ? 'help' : 'default',
           }}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onClick={handleMouseEnter}
         >
           {renderRowHeader()}
         </td>
