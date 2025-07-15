@@ -1,19 +1,17 @@
 import React from 'react';
 import { TableRow } from './TableRow';
-
-// Mock types
-type FormattedRow = Record<string, any> & { rowLong: string; rowShort: string };
-type FormattedCol = { id: string; name: string; short: string };
-type DisplayMode = 'full' | 'compact' | 'superCompact';
+import type { Resistance } from '../../../types';
 
 interface TableBodyProps {
-  data: FormattedRow[];
-  cols: FormattedCol[];
-  displayMode: DisplayMode;
-  rowsAreAbx: boolean;
-  hoveredRow: number | null;
-  hoveredCol: number | null;
-  onSetHover: (row: number, col: number) => void;
+  data: {
+    rowHeader: string;
+    rowId: string;
+    values: { colId: string; resistance: Resistance | null }[];
+  }[];
+  cols: { id: string; label: string }[];
+  hoveredRow: string | null;
+  hoveredCol: string | null;
+  onSetHover: (hover: { row: string | null; col: string | null }) => void;
   onClearHover: () => void;
   onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
   onHideTooltip: () => void;
@@ -24,8 +22,6 @@ interface TableBodyProps {
 export const TableBody = ({
   data,
   cols,
-  displayMode,
-  rowsAreAbx,
   hoveredRow,
   hoveredCol,
   onSetHover,
@@ -34,27 +30,22 @@ export const TableBody = ({
   onHideTooltip,
   styles,
   colorMode,
-}: TableBodyProps) => {
-  return (
-    <tbody>
-      {data.map((row, rowIndex) => (
-        <TableRow
-          key={row.rowLong}
-          row={row}
-          cols={cols}
-          rowIndex={rowIndex}
-          displayMode={displayMode}
-          rowsAreAbx={rowsAreAbx}
-          hoveredRow={hoveredRow}
-          hoveredCol={hoveredCol}
-          onSetHover={onSetHover}
-          onClearHover={onClearHover}
-          onShowTooltip={onShowTooltip}
-          onHideTooltip={onHideTooltip}
-          styles={styles}
-          colorMode={colorMode}
-        />
-      ))}
-    </tbody>
-  );
-};
+}: TableBodyProps) => (
+  <tbody>
+    {data.map((rowData) => (
+      <TableRow
+        key={rowData.rowId}
+        rowData={rowData}
+        cols={cols}
+        hoveredRow={hoveredRow}
+        hoveredCol={hoveredCol}
+        onSetHover={onSetHover}
+        onClearHover={onClearHover}
+        onShowTooltip={onShowTooltip}
+        onHideTooltip={onHideTooltip}
+        styles={styles}
+        colorMode={colorMode}
+      />
+    ))}
+  </tbody>
+);

@@ -1,27 +1,20 @@
 import React from 'react';
 
-// Mock types
-type FormattedCol = { id: string; name: string; short: string };
-type DisplayMode = 'full' | 'compact' | 'superCompact';
-
 interface LegendProps {
-  cols: FormattedCol[];
-  displayMode: DisplayMode;
   styles: any;
 }
 
-export const Legend = ({ cols, displayMode, styles }: LegendProps) => {
-  if (displayMode === 'full') return null;
-
-  return (
-    <div className={styles.legend}>
-      {cols.map((c, i) => (
-        <span key={c.id}>
-          <b>{displayMode === 'superCompact' ? `[${i + 1}]` : c.short}:</b>{' '}
-          {c.name}
-          {i < cols.length - 1 && '; '}
-        </span>
-      ))}
-    </div>
-  );
-};
+export const Legend = ({ styles }: LegendProps) => (
+  <div className={styles.legend}>
+    <strong>Legend:</strong>
+    <span className={styles.legendItem} style={{ backgroundColor: 'var(--ifm-color-success-light)' }}>
+      S (≤25%)
+    </span>
+    <span className={styles.legendItem} style={{ backgroundColor: 'var(--ifm-color-warning-light)' }}>
+      I (26-75%)
+    </span>
+    <span className={styles.legendItem} style={{ backgroundColor: 'var(--ifm-color-danger-light)' }}>
+      R (>75%)
+    </span>
+  </div>
+);

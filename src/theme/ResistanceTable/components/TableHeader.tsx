@@ -1,52 +1,63 @@
 import React from 'react';
-import { TableHeaderCell } from './TableHeaderCell';
-
-// Mock types
-type FormattedCol = { id: string; name: string; short: string };
-type DisplayMode = 'full' | 'compact' | 'superCompact';
+import { getHighlightStyle } from '../utils';
 
 interface TableHeaderProps {
-  cols: FormattedCol[];
-  displayMode: DisplayMode;
-  hoveredCol: number | null;
-  onSetHover: (row: number, col: number) => void;
+  cols: { id: string; label: string }[];
+  hoveredCol: string | null;
+  onSetHover: (hover: { row: string | null; col: string | null }) => void;
   onClearHover: () => void;
   onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
   onHideTooltip: () => void;
   styles: any;
+  colorMode: 'dark' | 'light';
 }
+
+const TableHeaderCell = ({
+  col,
+  isHovered,
+  onHover,
+  onLeave,
+  styles,
+  colorMode,
+}: {
+  col: { id: string; label: string };
+  isHovered: boolean;
+  onHover: () => void;
+  onLeave: () => void;
+  styles: any;
+  colorMode: 'dark' | 'light';
+}) => (
+  <th
+    style={isHovered ? getHighlightStyle(colorMode) : {}}
+    onMouseEnter={onHover}
+    onMouseLeave={onLeave}
+  >
+    <div className={styles.verticalText}>{col.label}</div>
+  </th>
+);
 
 export const TableHeader = ({
   cols,
-  displayMode,
   hoveredCol,
   onSetHover,
   onClearHover,
-  onShowTooltip,
-  onHideTooltip,
   styles,
-}: TableHeaderProps) => {
-  const abxCol = { whiteSpace: 'nowrap', width: '1%' } as const;
-
-  return (
-    <thead>
-      <tr>
-        <th style={abxCol}></th>
-        {cols.map((col, colIndex) => (
-          <TableHeaderCell
-            key={col.id}
-            col={col}
-            colIndex={colIndex}
-            displayMode={displayMode}
-            hoveredCol={hoveredCol}
-            onSetHover={onSetHover}
-            onClearHover={onClearHover}
-            onShowTooltip={onShowTooltip}
-            onHideTooltip={onHideTooltip}
-            styles={styles}
-          />
-        ))}
-      </tr>
-    </thead>
-  );
-};
+  colorMode,
+}: TableHeaderProps) => (
+  <thead>
+    <tr>
+      <th />
+      {cols.map((col) => (
+        <TableHeaderCell
+          key={col.id}
+          col={col}
+          isHovered={hoveredCol === col.id}
+          onHover={() => onSetHover({ row: null, col: col.id })}
+          onLeave={onClearHover}
+          styles={styles}
+          colorMode={colorMode}
+        />
+      ))}
+    </tr>
+  </thead>
+);

@@ -1,21 +1,18 @@
 import React from 'react';
 import { TableCell } from './TableCell';
-import { hl } from '../utils';
-
-// Mock types
-type FormattedRow = Record<string, any> & { rowLong: string; rowShort: string };
-type FormattedCol = { id: string; name: string; short: string };
-type DisplayMode = 'full' | 'compact' | 'superCompact';
+import { getHighlightStyle } from '../utils';
+import type { Resistance } from '../../../types';
 
 interface TableRowProps {
-  row: FormattedRow;
-  cols: FormattedCol[];
-  rowIndex: number;
-  displayMode: DisplayMode;
-  rowsAreAbx: boolean;
-  hoveredRow: number | null;
-  hoveredCol: number | null;
-  onSetHover: (row: number, col: number) => void;
+  rowData: {
+    rowHeader: string;
+    rowId: string;
+    values: { colId: string; resistance: Resistance | null }[];
+  };
+  cols: { id: string; label: string }[];
+  hoveredRow: string | null;
+  hoveredCol: string | null;
+  onSetHover: (hover: { row: string | null; col: string | null }) => void;
   onClearHover: () => void;
   onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
   onHideTooltip: () => void;
@@ -25,11 +22,8 @@ interface TableRowProps {
 
 export const TableRow = React.memo(
   ({
-    row,
+    rowData,
     cols,
-    rowIndex,
-    displayMode,
-    rowsAreAbx,
     hoveredRow,
     hoveredCol,
     onSetHover,
@@ -39,52 +33,28 @@ export const TableRow = React.memo(
     styles,
     colorMode,
   }: TableRowProps) => {
-    const highlight = hoveredRow === rowIndex;
-    const abxCol = { whiteSpace: 'nowrap', width: '1%' } as const;
-
-    const handleMouseEnter = (event: React.MouseEvent<HTMLTableCellElement>) => {
-      onSetHover(rowIndex, -1); // Hover the whole row
-      if (displayMode !== 'full') {
-        onShowTooltip(row.rowLong, event.currentTarget);
-      }
-    };
-
-    const handleMouseLeave = () => {
-      onClearHover();
-      onHideTooltip();
-    };
-
-    const renderRowHeader = () => {
-      const content = displayMode === 'full' ? row.rowLong : row.rowShort;
-      return <span className={styles.fullCellTrigger}>{content}</span>;
-    };
+    const isHovered = hoveredRow === rowData.rowId;
 
     return (
       <tr>
         <td
-          style={{
-            ...abxCol,
-            ...(highlight ? hl : {}),
-            cursor: displayMode !== 'full' ? 'help' : 'default',
-          }}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onClick={handleMouseEnter}
+          style={isHovered ? getHighlightStyle(colorMode) : {}}
+          onMouseEnter={() => onSetHover({ row: rowData.rowId, col: null })}
+          onMouseLeave={onClearHover}
         >
-          {renderRowHeader()}
+          {rowData.rowHeader}
         </td>
-        {cols.map((col, colIndex) => (
+        {rowData.values.map(({ colId, resistance }) => (
           <TableCell
-            key={col.id}
-            row={row}
-            col={col}
-            rowsAreAbx={rowsAreAbx}
-            rowIndex={rowIndex}
-            colIndex={colIndex}
-            hoveredRow={hoveredRow}
-            hoveredCol={hoveredCol}
-            onSetHover={onSetHover}
-            onClearHover={onClearHover}
+            key={colId}
+            rowId={rowData.rowId}
+            colId={colId}
+            rowHeader={rowData.rowHeader}
+            colHeader={cols.find(c => c.id === colId)?.label ?? ''}
+            resistance={resistance}
+            isHovered={isHovered || hoveredCol === colId}
+            onHover={() => onSetHover({ row: rowData.rowId, col: colId })}
+            onLeave={onClearHover}
             onShowTooltip={onShowTooltip}
             onHideTooltip={onHideTooltip}
             styles={styles}

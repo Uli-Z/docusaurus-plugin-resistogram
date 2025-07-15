@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "start": "docusaurus start",
+    "start": "npm run fetch:data && docusaurus start",
     "fetch:data": "node scripts/download-data.js",
     "build": "npm run fetch:data && docusaurus build",
     "swizzle": "docusaurus swizzle",
