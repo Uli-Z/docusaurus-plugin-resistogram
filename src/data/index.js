@@ -1,18 +1,9 @@
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { parse } from 'csv-parse/sync';
-import type {
-  Antibiotic,
-  Organism,
-  Resistance,
-  DataSource,
-  DataSourceNode,
-  PluginOptions,
-  LoadedData,
-} from '../types';
 
 // Helper to parse CSV files with consistent options
-const parseCsv = <T>(content: string): T[] =>
+const parseCsv = (content) =>
   parse(content, {
     columns: true,
     skip_empty_lines: true,
@@ -26,9 +17,9 @@ const parseCsv = <T>(content: string): T[] =>
   });
 
 // Generic function to load and parse a CSV file
-const loadCsv = async <T>(dir: string, file: string): Promise<T[]> => {
+const loadCsv = async (dir, file) => {
   const content = await readFile(join(dir, file), 'utf8');
-  return parseCsv<T>(content);
+  return parseCsv(content);
 };
 
 /**
@@ -36,13 +27,13 @@ const loadCsv = async <T>(dir: string, file: string): Promise<T[]> => {
  * @param sources The flat list of DataSource objects.
  * @returns The root node of the data source tree.
  */
-const buildSourceTree = (sources: DataSource[]): DataSourceNode => {
-  const nodes = new Map<string, DataSourceNode>();
-  let root: DataSourceNode | null = null;
+const buildSourceTree = (sources) => {
+  const nodes = new Map();
+  let root = null;
 
   // First pass: create nodes and identify the root
   for (const source of sources) {
-    const node: DataSourceNode = { ...source, children: [] };
+    const node = { ...source, children: [] };
     nodes.set(node.id, node);
     if (!node.parent_id) {
       // A source without a parent is a root. We assume one root for simplicity.
@@ -75,9 +66,9 @@ const buildSourceTree = (sources: DataSource[]): DataSourceNode => {
  * @returns A promise that resolves to the fully loaded and structured data.
  */
 export const loadAllData = async (
-  dataDir: string,
-  options: PluginOptions,
-): Promise<LoadedData> => {
+  dataDir,
+  options,
+) => {
   const fileNames = {
     antibiotics: options.files?.antibiotics ?? 'antibiotics.csv',
     organisms: options.files?.organisms ?? 'organisms.csv',
@@ -86,16 +77,16 @@ export const loadAllData = async (
 
   // Load metadata and the source manifest
   const [antibiotics, organisms, sources] = await Promise.all([
-    loadCsv<Antibiotic>(dataDir, fileNames.antibiotics),
-    loadCsv<Organism>(dataDir, fileNames.organisms),
-    loadCsv<DataSource>(dataDir, fileNames.data_sources),
+    loadCsv(dataDir, fileNames.antibiotics),
+    loadCsv(dataDir, fileNames.organisms),
+    loadCsv(dataDir, fileNames.data_sources),
   ]);
 
   // Load all resistance files referenced in the manifest
-  const resistanceData = new Map<string, Resistance[]>();
+  const resistanceData = new Map();
   await Promise.all(
     sources.map(async (source) => {
-      const data = await loadCsv<Resistance>(dataDir, source.source_file);
+      const data = await loadCsv(dataDir, source.source_file);
       resistanceData.set(source.id, data);
     }),
   );

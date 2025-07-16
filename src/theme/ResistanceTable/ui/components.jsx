@@ -1,11 +1,10 @@
 import React from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
-import type { DataSourceNode, Resistance } from '../../../types';
 
 // --- Helper Functions ---
 
-const getTranslatedValue = (item: any, fieldName: string, locale: string): string => {
+const getTranslatedValue = (item, fieldName, locale) => {
   if (!item) return '';
   return item[`${fieldName}_${locale}`] ?? item[`${fieldName}_en`] ?? (item[fieldName] || '');
 };
@@ -18,12 +17,6 @@ const SourceMenuItem = ({
   level,
   styles,
   locale,
-}: {
-  node: DataSourceNode;
-  onSelect: (id: string) => void;
-  level: number;
-  styles: any;
-  locale: string;
 }) => (
   <>
     <DropdownMenu.Item
@@ -52,14 +45,8 @@ export const SourceSwitcher = ({
   onSelect,
   locale,
   styles,
-}: {
-  sourceTree: DataSourceNode;
-  selectedId: string;
-  onSelect: (id: string) => void;
-  locale: string;
-  styles: any;
 }) => {
-  const findNode = (id: string, node: DataSourceNode): DataSourceNode | null => {
+  const findNode = (id, node) => {
     if (node.id === id) return node;
     for (const child of node.children) {
       const found = findNode(id, child);
@@ -108,10 +95,6 @@ export const CellTooltipContent = ({
   rowHeader,
   colHeader,
   resistance,
-}: {
-  rowHeader: string;
-  colHeader: string;
-  resistance: Resistance | null;
 }) => (
   <div style={{ textAlign: 'left' }}>
     <div>

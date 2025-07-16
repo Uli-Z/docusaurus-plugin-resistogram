@@ -1,24 +1,13 @@
-import { visit } from 'unist-util-visit';
-import { toString } from 'mdast-util-to-string';
-import type { Root } from 'mdast';
-import type { Plugin } from 'unified';
-import type { VFile } from 'vfile';
-import escapeStringRegexp from 'escape-string-regexp';
-import { readJsonSync } from 'fs-extra';
-import { u } from 'unist-builder';
-import type {
-  LoadedData,
-  Antibiotic,
-  Organism,
-  DataSourceNode,
-  Resistance,
-} from '../types';
-import type { MdxJsxFlowElement } from 'mdast-util-mdx';
+const { visit } = require('unist-util-visit');
+const { toString } = require('mdast-util-to-string');
+const escapeStringRegexp = require('escape-string-regexp').default;
+const { readJsonSync } = require('fs-extra');
+const { u } = require('unist-builder');
 
 // --- Helper Functions ---
 
 // Helper to revive Maps from JSON, as they are not supported by default
-const reviver = (key: any, value: any) => {
+const reviver = (key, value) => {
   if (typeof value === 'object' && value !== null) {
     if (value.dataType === 'Map') {
       return new Map(value.value);
@@ -31,9 +20,7 @@ const reviver = (key: any, value: any) => {
  * Parses the %%RESIST directive string to extract parameters.
  * Example: "abx=auto org=E_COLI,S_AUREUS source=de-ars-2023"
  */
-const parseDirective = (
-  directive: string,
-): { abx: string; org: string; source: string } => {
+const parseDirective = (directive) => {
   const params = directive.trim().split(/\s+/);
   const config = {
     abx: 'auto',
@@ -52,28 +39,19 @@ const parseDirective = (
 /**
  * Gets a translated value from an object, with a fallback to English.
  */
-const getTranslatedValue = (
-  item: any,
-  fieldName: string,
-  locale: string,
-): string => {
+const getTranslatedValue = (item, fieldName, locale) => {
   return item[`${fieldName}_${locale}`] ?? item[`${fieldName}_en`] ?? '';
 };
 
 /**
  * Resolves entity codes from a parameter (e.g., 'auto', 'all', or 'CODE1,CODE2').
  */
-const resolveEntityCodes = (
-  param: string,
-  pageText: string,
-  entities: Map<string, Antibiotic | Organism>,
-  locale: string,
-): string[] => {
+const resolveEntityCodes = (param, pageText, entities, locale) => {
   if (param === 'all') {
     return Array.from(entities.keys());
   }
 
-  const codes = new Set<string>();
+  const codes = new Set();
   if (param === 'auto') {
     for (const entity of entities.values()) {
       const synonyms = getTranslatedValue(entity, 'synonyms', locale)
@@ -102,13 +80,10 @@ const resolveEntityCodes = (
  * Recursively prunes the data source tree. A node is kept if it has relevant
  * data itself or if any of its children are kept.
  */
-const pruneSourceTree = (
-  node: DataSourceNode,
-  relevantSourceIds: Set<string>,
-): DataSourceNode | null => {
+const pruneSourceTree = (node, relevantSourceIds) => {
   const keptChildren = node.children
     .map((child) => pruneSourceTree(child, relevantSourceIds))
-    .filter((child): child is DataSourceNode => child !== null);
+    .filter((child) => child !== null);
 
   if (relevantSourceIds.has(node.id) || keptChildren.length > 0) {
     return { ...node, children: keptChildren };
@@ -120,11 +95,11 @@ const pruneSourceTree = (
 /**
  * Finds the deepest leaf node in a source tree.
  */
-const findDeepestLeaf = (root: DataSourceNode): DataSourceNode => {
+const findDeepestLeaf = (root) => {
   let deepestLeaf = root;
   let maxDepth = 0;
 
-  const traverse = (node: DataSourceNode, depth: number) => {
+  const traverse = (node, depth) => {
     if (depth > maxDepth && node.children.length === 0) {
       maxDepth = depth;
       deepestLeaf = node;
@@ -140,16 +115,12 @@ const findDeepestLeaf = (root: DataSourceNode): DataSourceNode => {
 
 // --- The Remark Plugin ---
 
-interface PluginOptions {
-  dataPath: string;
-}
-
-const remarkPlugin: Plugin<[PluginOptions], Root> = (options) => {
+const remarkPlugin = (options) => {
   console.log('[Resistogram Remark] Plugin initialized with options:', options);
-  let loadedData: LoadedData | null = null;
+  let loadedData = null;
 
   // This function will be called for each MDX file.
-  return (tree: Root, file: VFile) => {
+  return (tree, file) => {
     console.log(
       '[Resistogram Remark] Transformer running for file:',
       file.path,
@@ -177,7 +148,7 @@ const remarkPlugin: Plugin<[PluginOptions], Root> = (options) => {
     const { antibiotics, organisms, sourceTree, resistance } = loadedData;
 
     const pageText = toString(tree);
-    const locale = (file.data.i18n as any)?.currentLocale ?? 'en';
+    const locale = file.data.i18n?.currentLocale ?? 'en';
     let resistanceTableUsed = false;
 
     visit(tree, 'paragraph', (node, index, parent) => {
@@ -210,8 +181,8 @@ const remarkPlugin: Plugin<[PluginOptions], Root> = (options) => {
       );
 
       // 3. Filter relevant resistance data and sources
-      const relevantResistance = new Map<string, Resistance[]>();
-      const relevantSourceIds = new Set<string>();
+      const relevantResistance = new Map();
+      const relevantSourceIds = new Set();
 
       for (const [sourceId, resData] of resistance.entries()) {
         const filteredData = resData.filter(
@@ -263,7 +234,7 @@ const remarkPlugin: Plugin<[PluginOptions], Root> = (options) => {
       };
 
       // 6. Replace the paragraph node with the JSX component
-      const jsxNode: MdxJsxFlowElement = {
+      const jsxNode = {
         type: 'mdxJsxFlowElement',
         name: 'ResistanceTable',
         attributes: [
@@ -291,4 +262,3 @@ const remarkPlugin: Plugin<[PluginOptions], Root> = (options) => {
 };
 
 module.exports = remarkPlugin;
-

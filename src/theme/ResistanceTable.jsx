@@ -5,31 +5,10 @@ import * as RadixTooltip from '@radix-ui/react-tooltip';
 import { TableHeader, TableBody, Legend } from './components';
 import { SourceSwitcher } from './ui/components';
 import styles from './styles.module.css';
-import type {
-  Antibiotic,
-  Organism,
-  Resistance,
-  DataSourceNode,
-} from '../../types';
-
-// --- Type Definitions for Component Props ---
-
-interface ResistanceTableProps {
-  data: string; // The JSON-stringified data from the remark plugin
-}
-
-interface PrunedData {
-  antibiotics: Record<string, Antibiotic>;
-  organisms: Record<string, Organism>;
-  resistance: Record<string, Resistance[]>; // Keyed by source_id
-  sourceTree: DataSourceNode;
-  defaultSourceId: string;
-  locale: string;
-}
 
 // --- Helper Components ---
 
-const VirtualTrigger = React.forwardRef<HTMLSpanElement, {}>(
+const VirtualTrigger = React.forwardRef(
   function VirtualTrigger(props, ref) {
     return (
       <span
@@ -42,7 +21,7 @@ const VirtualTrigger = React.forwardRef<HTMLSpanElement, {}>(
 
 // --- Main Component ---
 
-export default function ResistanceTable({ data: jsonData }: ResistanceTableProps) {
+export default function ResistanceTable({ data: jsonData }) {
   const {
     antibiotics,
     organisms,
@@ -50,23 +29,23 @@ export default function ResistanceTable({ data: jsonData }: ResistanceTableProps
     sourceTree,
     defaultSourceId,
     locale,
-  } = useMemo(() => JSON.parse(jsonData) as PrunedData, [jsonData]);
+  } = useMemo(() => JSON.parse(jsonData), [jsonData]);
 
   const { colorMode } = useColorMode();
   const [selectedSourceId, setSelectedSourceId] = useState(defaultSourceId);
-  const [hover, setHover] = useState<{ row: string | null; col: string | null }>({
+  const [hover, setHover] = useState({
     row: null,
     col: null,
   });
 
   // --- Tooltip State and Callbacks ---
-  const [tooltipContent, setTooltipContent] = useState<React.ReactNode>(null);
+  const [tooltipContent, setTooltipContent] = useState(null);
   const [tooltipOpen, setTooltipOpen] = useState(false);
-  const virtualTriggerRef = React.useRef<HTMLSpanElement>(null);
-  const showTooltipTimeout = React.useRef<NodeJS.Timeout>();
+  const virtualTriggerRef = React.useRef(null);
+  const showTooltipTimeout = React.useRef();
 
   const showTooltip = useCallback(
-    (content: React.ReactNode, element: HTMLElement) => {
+    (content, element) => {
       clearTimeout(showTooltipTimeout.current);
       showTooltipTimeout.current = setTimeout(() => {
         if (!virtualTriggerRef.current) return;
@@ -87,7 +66,7 @@ export default function ResistanceTable({ data: jsonData }: ResistanceTableProps
 
   // --- Data Transformation for Rendering ---
 
-  const getTranslated = (item: any, field: string) =>
+  const getTranslated = (item, field) =>
     getTranslatedValue(item, field, locale);
 
   const antibioticList = useMemo(
@@ -98,10 +77,10 @@ export default function ResistanceTable({ data: jsonData }: ResistanceTableProps
 
   // This is the core hierarchical data lookup logic
   const getResistanceValue = useCallback(
-    (abxCode: string, orgCode: string): Resistance | null => {
-      let currentSourceId: string | null = selectedSourceId;
-      let sourceMap = new Map<string, DataSourceNode>();
-      const buildMap = (node: DataSourceNode) => {
+    (abxCode, orgCode) => {
+      let currentSourceId = selectedSourceId;
+      let sourceMap = new Map();
+      const buildMap = (node) => {
         sourceMap.set(node.id, node);
         node.children.forEach(buildMap);
       };
@@ -163,6 +142,7 @@ export default function ResistanceTable({ data: jsonData }: ResistanceTableProps
               onShowTooltip={showTooltip}
               onHideTooltip={hideTooltip}
               styles={styles}
+              colorMode={colorMode}
             />
             <TableBody
               data={tableData}
@@ -212,8 +192,7 @@ export default function ResistanceTable({ data: jsonData }: ResistanceTableProps
 }
 
 // Helper function to get translated values, needed for component logic
-function getTranslatedValue(item: any, fieldName: string, locale: string): string {
+function getTranslatedValue(item, fieldName, locale) {
     if (!item) return '';
     return item[`${fieldName}_${locale}`] ?? item[`${fieldName}_en`] ?? (item[fieldName] || '');
 }
-

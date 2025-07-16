@@ -1,11 +1,8 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
-import type * as Preset from '@docusaurus/preset-classic';
-import {join} from 'path';
+const {themes: prismThemes} = require('prism-react-renderer');
+const {join} = require('path');
 
-// This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
-
-const config: Config = {
+/** @type {import('@docusaurus/types').Config} */
+const config = {
   title: 'My Site',
   tagline: 'Dinosaurs are cool',
   favicon: 'img/favicon.ico',
@@ -42,14 +39,14 @@ const config: Config = {
       'classic',
       {
         docs: {
-          sidebarPath: './sidebars.ts',
+          sidebarPath: './sidebars.js',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
             'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
           remarkPlugins: [
             [
-              require('../dist/remark'),
+              require('../src/remark'),
               {
                 dataPath: join(
                   __dirname,
@@ -77,7 +74,7 @@ const config: Config = {
         theme: {
           customCss: './src/css/custom.css',
         },
-      } satisfies Preset.Options,
+      },
     ],
   ],
 
@@ -149,11 +146,11 @@ const config: Config = {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
     },
-  } satisfies Preset.ThemeConfig,
+  },
 
   plugins: [
     [
-      '../src/index.ts',
+      '..',
       {
         // No ID provided, so Docusaurus will use 'default'
         dataDir: 'data',
@@ -162,4 +159,4 @@ const config: Config = {
   ],
 };
 
-export default config;
+module.exports = config;

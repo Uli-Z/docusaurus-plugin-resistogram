@@ -1,15 +1,9 @@
-import type {
-  LoadContext,
-  Plugin,
-  PluginContentLoadedActions,
-} from '@docusaurus/types';
-import { join } from 'path';
-import { ensureDirSync, writeJsonSync } from 'fs-extra';
-import { loadAllData } from './data';
-import type { PluginOptions, LoadedData } from './types';
+const { join } = require('path');
+const { ensureDirSync, writeJsonSync } = require('fs-extra');
+const { loadAllData } = require('./data');
 
 // Helper to serialize Maps for JSON, as they are not supported by default
-const replacer = (key: any, value: any) => {
+const replacer = (key, value) => {
   if (value instanceof Map) {
     return {
       dataType: 'Map',
@@ -20,11 +14,8 @@ const replacer = (key: any, value: any) => {
   }
 };
 
-const plugin: Plugin<LoadedData> = (
-  context: LoadContext,
-  options: PluginOptions,
-) => {
-  const { siteDir, pluginId } = context as LoadContext & { pluginId: string };
+const plugin = (context, options) => {
+  const { siteDir, pluginId } = context;
   const pluginDataDir = join(
     context.generatedFilesDir,
     `docusaurus-plugin-resistogram-${pluginId}`,
@@ -37,17 +28,11 @@ const plugin: Plugin<LoadedData> = (
   return {
     name: 'docusaurus-plugin-resistogram',
 
-    async loadContent(): Promise<LoadedData> {
+    async loadContent() {
       return await loadAllData(dataDir, options);
     },
 
-    async contentLoaded({
-      content,
-      actions,
-    }: {
-      content: LoadedData;
-      actions: PluginContentLoadedActions;
-    }) {
+    async contentLoaded({ content, actions }) {
       const { setGlobalData } = actions;
       setGlobalData(content);
       writeJsonSync(dataFilePath, content, { replacer });
@@ -60,4 +45,3 @@ const plugin: Plugin<LoadedData> = (
 };
 
 module.exports = plugin;
-

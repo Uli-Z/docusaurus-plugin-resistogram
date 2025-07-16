@@ -1,24 +1,6 @@
 import React from 'react';
 import { TableCell } from './TableCell';
 import { getHighlightStyle } from '../utils';
-import type { Resistance } from '../../../types';
-
-interface TableRowProps {
-  rowData: {
-    rowHeader: string;
-    rowId: string;
-    values: { colId: string; resistance: Resistance | null }[];
-  };
-  cols: { id: string; label: string }[];
-  hoveredRow: string | null;
-  hoveredCol: string | null;
-  onSetHover: (hover: { row: string | null; col: string | null }) => void;
-  onClearHover: () => void;
-  onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
-  onHideTooltip: () => void;
-  styles: any;
-  colorMode: 'dark' | 'light';
-}
 
 export const TableRow = React.memo(
   ({
@@ -32,7 +14,7 @@ export const TableRow = React.memo(
     onHideTooltip,
     styles,
     colorMode,
-  }: TableRowProps) => {
+  }) => {
     const isHovered = hoveredRow === rowData.rowId;
 
     return (

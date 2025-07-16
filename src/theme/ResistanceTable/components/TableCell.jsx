@@ -1,22 +1,6 @@
 import React from 'react';
 import { CellTooltipContent } from '../ui/components';
 import { getCellStyle, getHighlightStyle } from '../utils';
-import type { Resistance } from '../../../types';
-
-interface TableCellProps {
-  rowId: string;
-  colId: string;
-  rowHeader: string;
-  colHeader: string;
-  resistance: Resistance | null;
-  isHovered: boolean;
-  onHover: () => void;
-  onLeave: () => void;
-  onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
-  onHideTooltip: () => void;
-  styles: any;
-  colorMode: 'dark' | 'light';
-}
 
 export const TableCell = React.memo(
   ({
@@ -30,8 +14,8 @@ export const TableCell = React.memo(
     onHideTooltip,
     styles,
     colorMode,
-  }: TableCellProps) => {
-    const handleMouseEnter = (event: React.MouseEvent<HTMLTableCellElement>) => {
+  }) => {
+    const handleMouseEnter = (event) => {
       onHover();
       const content = (
         <CellTooltipContent

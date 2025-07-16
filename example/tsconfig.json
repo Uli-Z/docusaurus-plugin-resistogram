@@ -1,8 +1,8 @@
 {
-  // This file is not used in compilation. It is here just for a nice editor experience.
-  "extends": "@docusaurus/tsconfig",
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "."
+    "noEmit": true,
+    "types": ["node", "@docusaurus/theme-classic"]
   },
-  "exclude": [".docusaurus", "build"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
 }

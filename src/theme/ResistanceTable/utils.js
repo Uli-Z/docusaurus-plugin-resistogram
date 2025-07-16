@@ -3,54 +3,51 @@
  * and do not rely on React hooks.
  */
 
+import escapeStringRegexp from 'escape-string-regexp';
+
 // ============================================================================
 // Styling Helpers
 // ============================================================================
 
-export const pctToColor = (pct: number, colorMode: 'dark' | 'light') => {
+export const pctToColor = (pct, colorMode) => {
   const hue = Math.round((1 - pct / 100) * 120);
   return colorMode === 'dark'
     ? `hsl(${hue},40%,30%)`
     : `hsl(${hue},60%,85%)`;
 };
 
-export const cellStyle = (pct: number | undefined, colorMode: 'dark' | 'light') => ({
+export const cellStyle = (pct, colorMode) => ({
   backgroundColor:
     pct === undefined
       ? 'var(--rt-empty-cell-background)'
       : pctToColor(pct, colorMode),
 });
 
-export const hl = { filter: 'brightness(90%)' } as const;
+export const hl = { filter: 'brightness(90%)' };
 
 
 // ============================================================================
 // Data Processing functions
 // ============================================================================
 
-export const parseParams = (s: string): Record<string, string> =>
+export const parseParams = (s) =>
   s
     .trim()
     .split(/\s+/)
-    .reduce((acc: Record<string, string>, part) => {
+    .reduce((acc, part) => {
       const [k, v] = part.split('=');
       acc[k] = v;
       return acc;
     }, {});
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-export const escapeRegExp = (str: string): string =>
-  typeof RegExp.escape === 'function'
-    ? RegExp.escape(str)
-    : str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const escapeRegExp = (str) => escapeStringRegexp(str);
 
 export const resolveIds = (
-  param: string | undefined,
-  allIds: string[],
-  synMap: Record<string, string>,
-  pageText: string,
-): string[] => {
+  param,
+  allIds,
+  synMap,
+  pageText,
+) => {
   const synLower = Object.fromEntries(
     Object.entries(synMap).map(([k, v]) => [k.toLowerCase(), v]),
   );
@@ -85,16 +82,16 @@ export const resolveIds = (
         })
         .filter(Boolean),
     ),
-  ) as string[];
+  );
 };
 
 export const buildMatrix = (
-  rowIds: string[],
-  colIds: string[],
-  rowsAreAbx: boolean,
-  resistanceData: any[],
+  rowIds,
+  colIds,
+  rowsAreAbx,
+  resistanceData,
 ) => {
-  const m = new Map<string, Map<string, any>>();
+  const m = new Map();
   rowIds.forEach((id) => m.set(id, new Map()));
   resistanceData
     .filter((r) => {
@@ -105,17 +102,17 @@ export const buildMatrix = (
     .forEach((r) => {
       const rowId = rowsAreAbx ? r.antibiotic_id : r.organism_id;
       const colId = rowsAreAbx ? r.organism_id : r.antibiotic_id;
-      m.get(rowId)!.set(colId, r);
+      m.get(rowId).set(colId, r);
     });
   return m;
 };
 
 export const formatMatrix = (
-  matrix: Map<string, Map<string, any>>,
-  rowIds: string[],
-  colIds: string[],
-  id2Main: Map<string, string>,
-  id2Short: Map<string, string>,
+  matrix,
+  rowIds,
+  colIds,
+  id2Main,
+  id2Short,
 ) => {
   const cols = colIds.map((id) => ({
     id,
@@ -124,7 +121,7 @@ export const formatMatrix = (
   }));
 
   const data = rowIds.map((rowId) => {
-    const row: Record<string, any> = {
+    const row = {
       rowLong: id2Main.get(rowId) ?? rowId,
       rowShort: id2Short.get(rowId) ?? id2Main.get(rowId) ?? rowId,
     };
@@ -143,9 +140,9 @@ export const formatMatrix = (
  * Determines the background color of a cell based on resistance percentage.
  */
 export const getCellStyle = (
-  resistance: number | undefined,
-  colorMode: 'dark' | 'light',
-): React.CSSProperties => {
+  resistance,
+  colorMode,
+) => {
   if (resistance === undefined || resistance === null) {
     return {};
   }
@@ -172,8 +169,8 @@ export const getCellStyle = (
  * Returns the style for a highlighted row or column.
  */
 export const getHighlightStyle = (
-  colorMode: 'dark' | 'light',
-): React.CSSProperties => ({
+  colorMode,
+) => ({
   backgroundColor:
     colorMode === 'dark'
       ? 'var(--ifm-hover-overlay)'

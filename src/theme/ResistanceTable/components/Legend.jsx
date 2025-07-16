@@ -1,10 +1,6 @@
 import React from 'react';
 
-interface LegendProps {
-  styles: any;
-}
-
-export const Legend = ({ styles }: LegendProps) => (
+export const Legend = ({ styles }) => (
   <div className={styles.legend}>
     <strong>Legend:</strong>
     <span className={styles.legendItem} style={{ backgroundColor: 'var(--ifm-color-success-light)' }}>
@@ -14,7 +10,7 @@ export const Legend = ({ styles }: LegendProps) => (
       I (26-75%)
     </span>
     <span className={styles.legendItem} style={{ backgroundColor: 'var(--ifm-color-danger-light)' }}>
-      R (>75%)
+      R (&gt;75%)
     </span>
   </div>
 );
