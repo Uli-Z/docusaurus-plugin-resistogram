@@ -252,11 +252,32 @@ const remarkPlugin = (options) => {
 
     if (resistanceTableUsed) {
       // Add the import statement for the ResistanceTable component
-      tree.children.unshift(
-        u('mdxjsEsm', {
-          value: "import ResistanceTable from '@theme/ResistanceTable';",
-        }),
-      );
+      tree.children.unshift({
+        type: 'mdxjsEsm',
+        value: "import ResistanceTable from '@theme/ResistanceTable';",
+        data: {
+          estree: {
+            type: 'Program',
+            body: [
+              {
+                type: 'ImportDeclaration',
+                specifiers: [
+                  {
+                    type: 'ImportDefaultSpecifier',
+                    local: { type: 'Identifier', name: 'ResistanceTable' },
+                  },
+                ],
+                source: {
+                  type: 'Literal',
+                  value: '@theme/ResistanceTable',
+                  raw: "'@theme/ResistanceTable'",
+                },
+              },
+            ],
+            sourceType: 'module',
+          },
+        },
+      });
     }
   };
 };
