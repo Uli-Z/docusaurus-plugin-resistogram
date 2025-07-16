@@ -1,39 +1,63 @@
-import type { LoadContext, Plugin, DocusaurusContent } from '@docusaurus/types';
+import type {
+  LoadContext,
+  Plugin,
+  PluginContentLoadedActions,
+} from '@docusaurus/types';
 import { join } from 'path';
+import { ensureDirSync, writeJsonSync } from 'fs-extra';
 import { loadAllData } from './data';
 import type { PluginOptions, LoadedData } from './types';
-import remarkPlugin from './remark';
 
-export default function pluginResistogram(
+// Helper to serialize Maps for JSON, as they are not supported by default
+const replacer = (key: any, value: any) => {
+  if (value instanceof Map) {
+    return {
+      dataType: 'Map',
+      value: Array.from(value.entries()),
+    };
+  } else {
+    return value;
+  }
+};
+
+const plugin: Plugin<LoadedData> = (
   context: LoadContext,
   options: PluginOptions,
-): Plugin<LoadedData> {
-  const { siteDir } = context;
+) => {
+  const { siteDir, pluginId } = context as LoadContext & { pluginId: string };
+  const pluginDataDir = join(
+    context.generatedFilesDir,
+    `docusaurus-plugin-resistogram-${pluginId}`,
+  );
+  ensureDirSync(pluginDataDir);
+
   const dataDir = join(siteDir, options.dataDir ?? 'data');
+  const dataFilePath = join(pluginDataDir, 'loaded-data.json');
 
   return {
     name: 'docusaurus-plugin-resistogram',
 
-    async loadContent() {
-      // Load all data from CSVs into memory
+    async loadContent(): Promise<LoadedData> {
       return await loadAllData(dataDir, options);
     },
 
-    async contentLoaded({ content, actions }) {
+    async contentLoaded({
+      content,
+      actions,
+    }: {
+      content: LoadedData;
+      actions: PluginContentLoadedActions;
+    }) {
       const { setGlobalData } = actions;
-      // Make all loaded data available to theme components
       setGlobalData(content);
+      writeJsonSync(dataFilePath, content, { replacer });
     },
 
     getThemePath() {
       return './theme';
     },
-
-    getRemarkPlugins() {
-      // Here, we access the data loaded in `loadContent` and pass it to the remark plugin.
-      // Docusaurus ensures this hook is called after `loadContent` and `contentLoaded`.
-      const content = this.content as LoadedData;
-      return [[remarkPlugin, content]];
-    },
   };
-}
+};
+
+module.exports = plugin;
+

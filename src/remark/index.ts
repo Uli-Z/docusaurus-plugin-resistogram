@@ -4,6 +4,8 @@ import type { Root } from 'mdast';
 import type { Plugin } from 'unified';
 import type { VFile } from 'vfile';
 import escapeStringRegexp from 'escape-string-regexp';
+import { readJsonSync } from 'fs-extra';
+import { u } from 'unist-builder';
 import type {
   LoadedData,
   Antibiotic,
@@ -11,8 +13,19 @@ import type {
   DataSourceNode,
   Resistance,
 } from '../types';
+import type { MdxJsxFlowElement } from 'mdast-util-mdx';
 
 // --- Helper Functions ---
+
+// Helper to revive Maps from JSON, as they are not supported by default
+const reviver = (key: any, value: any) => {
+  if (typeof value === 'object' && value !== null) {
+    if (value.dataType === 'Map') {
+      return new Map(value.value);
+    }
+  }
+  return value;
+};
 
 /**
  * Parses the %%RESIST directive string to extract parameters.
@@ -127,35 +140,130 @@ const findDeepestLeaf = (root: DataSourceNode): DataSourceNode => {
 
 // --- The Remark Plugin ---
 
-const remarkPlugin: Plugin<[LoadedData], Root> = (loadedData) => {
-  if (!loadedData) {
-    // Data not loaded, do nothing. This can happen during development.
-    return;
-  }
+interface PluginOptions {
+  dataPath: string;
+}
 
-  const { antibiotics, organisms, sourceTree, resistance } = loadedData;
+const remarkPlugin: Plugin<[PluginOptions], Root> = (options) => {
+  console.log('[Resistogram Remark] Plugin initialized with options:', options);
+  let loadedData: LoadedData | null = null;
 
+  // This function will be called for each MDX file.
   return (tree: Root, file: VFile) => {
-    console.log(`[Remark Plugin] Processing file: ${file.path}`);
+    console.log(
+      '[Resistogram Remark] Transformer running for file:',
+      file.path,
+    );
+    // Lazy-load the data on the first run.
+    if (!loadedData) {
+      try {
+        loadedData = readJsonSync(options.dataPath, { reviver });
+      } catch (e) {
+        console.error(
+          `[Resistogram Plugin] Failed to load data from ${options.dataPath}`,
+          e,
+        );
+        // If data can't be loaded, we can't do anything.
+        return;
+      }
+    }
+
+    // If data loading failed or the file doesn't exist, stop.
+    if (!loadedData) {
+      return;
+    }
+
+    // De-structure here, inside the transformer.
+    const { antibiotics, organisms, sourceTree, resistance } = loadedData;
+
     const pageText = toString(tree);
     const locale = (file.data.i18n as any)?.currentLocale ?? 'en';
     let resistanceTableUsed = false;
 
-    // ... (imports and helper functions remain the same)
-
     visit(tree, 'paragraph', (node, index, parent) => {
+      console.log('[Resistogram Remark] Visiting paragraph.');
       if (index === undefined || !parent) return;
 
       const textContent = toString(node);
       const match = textContent.match(/^%%RESIST(.*?)%%$/);
       if (!match) return;
 
+      console.log('[Resistogram Remark] Found directive:', textContent);
+
       resistanceTableUsed = true;
 
-      // ... (rest of the logic: parsing, pruning, etc.)
+      const directive = match[1] ?? '';
+      const config = parseDirective(directive);
+
+      // 2. Resolve entity codes
+      const abxCodes = resolveEntityCodes(
+        config.abx,
+        pageText,
+        antibiotics,
+        locale,
+      );
+      const orgCodes = resolveEntityCodes(
+        config.org,
+        pageText,
+        organisms,
+        locale,
+      );
+
+      // 3. Filter relevant resistance data and sources
+      const relevantResistance = new Map<string, Resistance[]>();
+      const relevantSourceIds = new Set<string>();
+
+      for (const [sourceId, resData] of resistance.entries()) {
+        const filteredData = resData.filter(
+          (r) =>
+            abxCodes.includes(r.antibiotic_id) &&
+            orgCodes.includes(r.organism_id),
+        );
+        if (filteredData.length > 0) {
+          relevantResistance.set(sourceId, filteredData);
+          relevantSourceIds.add(sourceId);
+        }
+      }
+
+      // 4. Prune the data for the component
+      const prunedAntibiotics = Object.fromEntries(
+        Array.from(antibiotics.entries()).filter(([key]) =>
+          abxCodes.includes(key),
+        ),
+      );
+      const prunedOrganisms = Object.fromEntries(
+        Array.from(organisms.entries()).filter(([key]) =>
+          orgCodes.includes(key),
+        ),
+      );
+      const prunedSourceTree = pruneSourceTree(sourceTree, relevantSourceIds);
+
+      if (!prunedSourceTree) {
+        console.warn(
+          '[Resistogram Plugin] No relevant data found for directive:',
+          directive,
+        );
+        parent.children.splice(index, 1); // Remove the directive node
+        return;
+      }
+
+      // 5. Determine the default source
+      const defaultSourceId =
+        config.source === 'auto'
+          ? findDeepestLeaf(prunedSourceTree).id
+          : config.source;
+
+      const props = {
+        antibiotics: prunedAntibiotics,
+        organisms: prunedOrganisms,
+        resistance: Object.fromEntries(relevantResistance),
+        sourceTree: prunedSourceTree,
+        defaultSourceId,
+        locale,
+      };
 
       // 6. Replace the paragraph node with the JSX component
-      const jsxNode = {
+      const jsxNode: MdxJsxFlowElement = {
         type: 'mdxJsxFlowElement',
         name: 'ResistanceTable',
         attributes: [
@@ -171,8 +279,16 @@ const remarkPlugin: Plugin<[LoadedData], Root> = (loadedData) => {
       parent.children.splice(index, 1, jsxNode);
     });
 
-    // ... (import statement logic remains the same)
+    if (resistanceTableUsed) {
+      // Add the import statement for the ResistanceTable component
+      tree.children.unshift(
+        u('mdxjsEsm', {
+          value: "import ResistanceTable from '@theme/ResistanceTable';",
+        }),
+      );
+    }
   };
 };
 
-export default remarkPlugin;
+module.exports = remarkPlugin;
+
