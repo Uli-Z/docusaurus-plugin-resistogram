@@ -42,9 +42,7 @@ npm install docusaurus-plugin-resistogram
           'classic',
           {
             docs: {
-              remarkPlugins: [
-                require('docusaurus-plugin-resistogram').remarkPlugin,
-              ],
+              sidebarPath: './sidebars.js',
             },
           },
         ],
@@ -62,6 +60,9 @@ npm install docusaurus-plugin-resistogram
 
     export default config;
     ```
+
+    The plugin automatically registers its remark transformer, so no additional
+    `remarkPlugins` configuration is required.
 
 ## Usage
 

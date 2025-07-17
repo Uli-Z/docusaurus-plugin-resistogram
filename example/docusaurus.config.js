@@ -26,9 +26,6 @@ const config = {
       {
         docs: {
           sidebarPath: './sidebars.js',
-          remarkPlugins: [
-            require('..').remarkPlugin,
-          ],
         },
         blog: false,
         theme: {
