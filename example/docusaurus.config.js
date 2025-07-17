@@ -1,9 +1,4 @@
 const {themes: prismThemes} = require('prism-react-renderer');
-const { loadAllDataSync } = require('../src/data');
-const remarkResistogram = require('../src/remark/transformer');
-
-// Load all data synchronously at the start of the configuration.
-const csvData = loadAllDataSync('./data');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -31,10 +26,7 @@ const config = {
       {
         docs: {
           sidebarPath: './sidebars.js',
-          // Inject our remark plugin with the loaded data
-          remarkPlugins: [
-            [remarkResistogram, { csvData }],
-          ],
+          // The remark plugin is now injected automatically by our main plugin
         },
         blog: false,
         theme: {
@@ -45,7 +37,7 @@ const config = {
   ],
 
   plugins: [
-    // Pass the loaded data to the main plugin for the theme
+    // This is our plugin. It will handle data loading and remark injection.
     ['..', { dataDir: 'data' }],
   ],
 

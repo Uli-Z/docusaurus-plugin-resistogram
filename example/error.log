@@ -1,0 +1,23 @@
+
+> example@0.0.0 prebuild
+> npm run clear
+
+
+> example@0.0.0 clear
+> docusaurus clear
+
+[SUCCESS] Removed the generated folder at ".docusaurus".
+
+> example@0.0.0 build
+> npm run fetch:data && docusaurus build
+
+
+> example@0.0.0 fetch:data
+> node scripts/download-data.js
+
+Data files already exist. Skipping download. To force a refresh, delete the "data" directory.
+[INFO] [en] Creating an optimized production build...
+[webpackbar] ℹ Compiling Client
+[webpackbar] ℹ Compiling Server
+[webpackbar] ✔ Server: Compiled with some errors in 15.79s
+[webpackbar] ✔ Client: Compiled with some errors in 23.90s

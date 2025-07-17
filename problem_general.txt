@@ -1,0 +1,158 @@
+Hallo,
+
+ich entwickle ein Docusaurus v3 Plugin, das eine komplexe React-Komponente über einen einfachen Markdown-Tag (`%%RESIST%%`) einbinden soll. Die gesamte Logik – Daten laden, Markdown transformieren und die Komponente bereitstellen – soll im Plugin gekapselt sein, sodass der Endbenutzer es nur in seiner `docusaurus.config.js` aktivieren muss.
+
+---
+**Das Ziel:**
+
+Ein Remark-Transformer soll den `%%RESIST%%`-Tag finden und ihn durch eine React-Komponente (`<ResistanceTable />`) ersetzen. Um das zu erreichen, muss mein Plugin die Webpack-Konfiguration von Docusaurus zur Laufzeit modifizieren und meinen Transformer in den bestehenden `@docusaurus/mdx-loader` einhängen.
+
+---
+**Das Problem:**
+
+Ich scheitere daran, die Webpack-Konfiguration korrekt zu modifizieren. Meine Versuche führen zu einem von zwei Fehlerszenarien:
+
+1.  **Die Änderung wird ignoriert:** Wenn ich das `config`-Objekt in der `configureWebpack`-Methode direkt modifiziere (in-place), läuft der Build-Prozess ohne Fehler durch, aber mein Remark-Transformer wird nicht ausgeführt. Der `%%RESIST%%`-Tag wird nicht ersetzt.
+
+2.  **Der Build stürzt ab:** Wenn ich versuche, die Konfiguration zu ändern, indem ich ein neues Objekt zurückgebe (wie in der Docusaurus-Dokumentation beschrieben), stürzt der Build mit dem Fehler `Module not found: Error: Can't resolve '@generated/...'` ab. Das deutet darauf hin, dass mein Versuch, die Konfigurationsregeln zu kopieren und zu erweitern, kritische, interne Webpack-Aliase von Docusaurus zerstört.
+
+Ich stecke in einer Sackgasse: Entweder wird meine Konfigurationsänderung ignoriert, oder sie zerstört den gesamten Build-Prozess.
+
+---
+**Die entscheidende Frage:**
+
+Wie lautet der korrekte und stabile Weg in Docusaurus v3, um aus einem Plugin heraus die `remarkPlugins` des `@docusaurus/mdx-loader` zu erweitern, ohne dabei die Integrität der restlichen Webpack-Konfiguration (insbesondere der `@generated`-Aliase) zu verletzen?
+
+---
+**Anhang: Vollständiger Code**
+
+Hier sind die exakten Dateien, die den aktuellen Zustand zeigen.
+
+**1. `example/docusaurus.config.js` (So wird das Plugin eingebunden)**
+```javascript
+const {themes: prismThemes} = require('prism-react-renderer');
+
+/** @type {import('@docusaurus/types').Config} */
+const config = {
+  title: 'My Site',
+  tagline: 'Dinosaurs are cool',
+  favicon: 'img/favicon.ico',
+  url: 'https://your-docusaurus-site.example.com',
+  baseUrl: '/',
+  organizationName: 'facebook',
+  projectName: 'docusaurus',
+  onBrokenLinks: 'throw',
+  onBrokenMarkdownLinks: 'warn',
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en'],
+  },
+  presets: [
+    [
+      'classic',
+      {
+        docs: {
+          sidebarPath: './sidebars.js',
+        },
+        blog: false,
+        theme: {
+          customCss: './src/css/custom.css',
+        },
+      },
+    ],
+  ],
+  plugins: [
+    // Das Plugin wird hier eingebunden
+    ['..', { dataDir: 'data' }],
+  ],
+  themeConfig: {
+    // ... (gekürzt)
+  },
+};
+
+module.exports = config;
+```
+
+**2. `src/index.js` (Das Plugin selbst, mit der fehlerhaften `configureWebpack`-Methode)**
+```javascript
+const path = require('path');
+const { loadAllDataSync } = require('./data');
+const remarkResistogram = require('./remark/transformer');
+
+module.exports = function resistogramPlugin(context, opts = {}) {
+  const dataDir = opts.dataDir ?? 'data';
+  const csvData = loadAllDataSync(path.join(context.siteDir, dataDir), opts);
+
+  return {
+    name: 'docusaurus-plugin-resistogram',
+
+    async loadContent() { /* ... */ },
+    async contentLoaded({ content, actions }) { /* ... */ },
+
+    // Diese Implementierung führt zum Absturz mit "@generated"-Fehlern
+    configureWebpack(originalConfig /*, isServer, utils */) {
+      const patchRules = (rules) =>
+        rules.map((rule) => {
+          if (rule.oneOf) {
+            return { ...rule, oneOf: patchRules(rule.oneOf) };
+          }
+
+          const uses = Array.isArray(rule.use) ? rule.use : [rule.use];
+          const mdxIdx = uses.findIndex(
+            (u) =>
+              typeof u?.loader === 'string' &&
+              u.loader.includes('@docusaurus/mdx-loader'),
+          );
+          if (mdxIdx === -1) return rule;
+
+          const mdxUse = uses[mdxIdx];
+          const remarkPlugins = [
+            ...(mdxUse.options?.remarkPlugins ?? []),
+            [remarkResistogram, { csvData }],
+          ];
+
+          return {
+            ...rule,
+            use: [
+              ...uses.slice(0, mdxIdx),
+              {
+                ...mdxUse,
+                options: { ...(mdxUse.options ?? {}), remarkPlugins },
+              },
+              ...uses.slice(mdxIdx + 1),
+            ],
+          };
+        });
+
+      return {
+        module: {
+          rules: patchRules(originalConfig.module.rules),
+        },
+      };
+    },
+
+    getThemePaths() {
+      return [path.join(__dirname, 'theme')];
+    },
+  };
+};
+```
+
+**3. `src/remark/transformer.js` (Der Transformer, der nicht ausgeführt wird)**
+```javascript
+const { visit } = require('unist-util-visit');
+const { toString } = require('mdast-util-to-string');
+
+function remarkResistogram(options) {
+  // Debug-Meldung, die nie erscheint
+  console.log('--- [Resistogram-Debug] REMARK TRANSFORMER INITIALIZED ---'); 
+  
+  return (tree, file) => {
+    // ... (Logik zur Ersetzung des %%RESIST%%-Tags)
+  };
+}
+
+module.exports = remarkResistogram;
+```
+
+Vielen Dank für jede Hilfe.

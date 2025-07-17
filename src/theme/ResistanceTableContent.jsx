@@ -29,11 +29,11 @@ export default function ResistanceTableContent({
   defaultSourceId,
   locale,
 }) {
-  console.debug('[Resistogram-Debug] ResistanceTableContent rendered with props:', {
-    antibiotics,
-    organisms,
-    resistance,
-    sourceTree,
+  console.debug('[Resistogram-Debug] ResistanceTableContent rendered. Received data keys:', {
+    antibiotics: Object.keys(antibiotics).length,
+    organisms: Object.keys(organisms).length,
+    resistance: Object.keys(resistance).length,
+    sourceTree: !!sourceTree,
     defaultSourceId,
     locale,
   });

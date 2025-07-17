@@ -23,10 +23,10 @@ const getEntitySearchTerms = (entity, locale) => {
 };
 
 const resolveEntityCodes = (param, pageText, entities, locale) => {
-  if (param === 'all') return Array.from(entities.keys());
+  if (param === 'all') return Object.keys(entities);
   const codes = new Set();
   if (param === 'auto') {
-    for (const entity of entities.values()) {
+    for (const entity of Object.values(entities)) {
       const searchTerms = getEntitySearchTerms(entity, locale);
       for (const term of searchTerms) {
         const regex = new RegExp(`\\b${escapeStringRegexp(term)}\\b`, 'gi');
@@ -35,7 +35,10 @@ const resolveEntityCodes = (param, pageText, entities, locale) => {
     }
   } else {
     param.split(',').forEach((code) => {
-      if (entities.has(code.trim())) codes.add(code.trim());
+      const trimmedCode = code.trim();
+      if (entities[trimmedCode]) {
+        codes.add(trimmedCode);
+      }
     });
   }
   return Array.from(codes);
@@ -72,7 +75,8 @@ const findDeepestLeaf = (root) => {
 // --- The Remark Transformer ---
 function remarkResistogram(options) {
   const { csvData } = options;
-  if (!csvData) {
+  if (!csvData || !csvData.sourceTree) {
+    console.log('--- [Resistogram-Debug] Transformer exiting early: No csvData or sourceTree. ---');
     return () => {};
   }
 
@@ -93,28 +97,28 @@ function remarkResistogram(options) {
       const config = parseDirective(directive);
       const abxCodes = resolveEntityCodes(config.abx, pageText, antibiotics, locale);
       const orgCodes = resolveEntityCodes(config.org, pageText, organisms, locale);
-      const relevantResistance = new Map();
+      const relevantResistance = {};
       const relevantSourceIds = new Set();
 
       if (resistance) {
-        for (const [sourceId, resData] of resistance.entries()) {
+        for (const [sourceId, resData] of Object.entries(resistance)) {
           const filteredData = resData.filter(
             (r) =>
               abxCodes.includes(r.antibiotic_id) &&
               orgCodes.includes(r.organism_id),
           );
           if (filteredData.length > 0) {
-            relevantResistance.set(sourceId, filteredData);
+            relevantResistance[sourceId] = filteredData;
             relevantSourceIds.add(sourceId);
           }
         }
       }
 
       const prunedAntibiotics = Object.fromEntries(
-        Array.from(antibiotics.entries()).filter(([key]) => abxCodes.includes(key)),
+        Object.entries(antibiotics).filter(([key]) => abxCodes.includes(key)),
       );
       const prunedOrganisms = Object.fromEntries(
-        Array.from(organisms.entries()).filter(([key]) => orgCodes.includes(key)),
+        Object.entries(organisms).filter(([key]) => orgCodes.includes(key)),
       );
       const prunedSourceTree = pruneSourceTree(sourceTree, relevantSourceIds);
 
@@ -131,6 +135,7 @@ function remarkResistogram(options) {
         resistance: Object.fromEntries(relevantResistance),
         sourceTree: prunedSourceTree,
         defaultSourceId,
+        locale,
       };
 
       const jsxNode = {
