@@ -1,13 +1,8 @@
 const { visit } = require('unist-util-visit');
 const { toString } = require('mdast-util-to-string');
 const escapeStringRegexp = require('escape-string-regexp').default;
-const { readJsonSync } = require('fs-extra');
-const { join } = require('path');
 
-let loadedData = null; // Cache data across multiple remark runs
-
-// --- Helper functions (parseDirective, etc.) ---
-// (These are the same as before)
+// --- Helper functions ---
 const parseDirective = (directive) => {
   const params = directive.trim().split(/\s+/);
   const config = { abx: 'auto', org: 'auto', source: 'auto' };
@@ -74,42 +69,30 @@ const findDeepestLeaf = (root) => {
   return deepestLeaf;
 };
 
-
 // --- The Remark Transformer ---
-function remarkResistogram() {
-  return (tree, file) => {
-    // Lazy-load the data on the first run.
-    if (!loadedData) {
-      try {
-        const pathInfoPath = join(file.cwd, '.docusaurus', 'resistogram-data-path.json');
-        const pathInfo = readJsonSync(pathInfoPath);
-        loadedData = readJsonSync(pathInfo.dataFilePath);
-      } catch (e) {
-        console.error('[Resistogram Plugin] Remark transformer failed to load data.', e);
-        return; // Cannot proceed
-      }
-    }
+function remarkResistogram(options) {
+  const { csvData } = options;
+  if (!csvData) {
+    return () => {};
+  }
 
-    const { antibiotics, organisms, sourceTree, resistance } = loadedData;
+  return (tree, file) => {
+    const { antibiotics, organisms, sourceTree, resistance } = csvData;
     const pageText = toString(tree);
     const locale = file.data.i18n?.currentLocale ?? 'en';
     let resistanceTableUsed = false;
 
     visit(tree, 'paragraph', (node, index, parent) => {
       if (index === undefined || !parent) return;
-
       const textContent = toString(node);
       const match = textContent.match(/^%%RESIST(.*?)%%$/);
       if (!match) return;
 
       resistanceTableUsed = true;
-
       const directive = match[1] ?? '';
       const config = parseDirective(directive);
-
       const abxCodes = resolveEntityCodes(config.abx, pageText, antibiotics, locale);
       const orgCodes = resolveEntityCodes(config.org, pageText, organisms, locale);
-
       const relevantResistance = new Map();
       const relevantSourceIds = new Set();
 
@@ -196,3 +179,5 @@ function remarkResistogram() {
     }
   };
 }
+
+module.exports = remarkResistogram;

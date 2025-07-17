@@ -1,4 +1,9 @@
 const {themes: prismThemes} = require('prism-react-renderer');
+const { loadAllDataSync } = require('../src/data');
+const remarkResistogram = require('../src/remark/transformer');
+
+// Load all data synchronously at the start of the configuration.
+const csvData = loadAllDataSync('./data');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -22,24 +27,26 @@ const config = {
 
   presets: [
     [
-      // Use the preset from the parent directory
-      require.resolve('../src/preset.js'),
+      'classic',
       {
-        // Options for our plugin
-        dataDir: 'data',
-        
-        // Options for the docs plugin, which is loaded by our preset
         docs: {
           sidebarPath: './sidebars.js',
+          // Inject our remark plugin with the loaded data
+          remarkPlugins: [
+            [remarkResistogram, { csvData }],
+          ],
         },
-        // Disable the blog plugin
         blog: false,
-        // Options for the classic theme, which is loaded by our preset
         theme: {
           customCss: './src/css/custom.css',
         },
       },
     ],
+  ],
+
+  plugins: [
+    // Pass the loaded data to the main plugin for the theme
+    ['..', { dataDir: 'data' }],
   ],
 
   themeConfig: {
