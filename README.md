@@ -43,7 +43,7 @@ npm install docusaurus-plugin-resistogram
           {
             docs: {
               remarkPlugins: [
-                [require('docusaurus-plugin-resistogram').remarkPlugin],
+                require('docusaurus-plugin-resistogram').remarkPlugin,
               ],
             },
           },
