@@ -26,7 +26,9 @@ const config = {
       {
         docs: {
           sidebarPath: './sidebars.js',
-          // The remark plugin is now injected automatically by our main plugin
+          remarkPlugins: [
+            [require('..').remarkPlugin],
+          ],
         },
         blog: false,
         theme: {
@@ -37,7 +39,7 @@ const config = {
   ],
 
   plugins: [
-    // This is our plugin. It will handle data loading and remark injection.
+    // This plugin loads the CSV data used by the remark transformer.
     ['..', { dataDir: 'data' }],
   ],
 

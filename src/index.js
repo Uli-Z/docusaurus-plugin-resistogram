@@ -16,26 +16,12 @@ module.exports = function resistogramPlugin(context, opts = {}) {
       actions.setGlobalData(content);
     },
 
-    configureWebpack(config, isServer, utils) {
-      const { getJSLoader } = utils;
-      return {
-        module: {
-          rules: [
-            {
-              test: /\.mdx$/,
-              use: [
-                getJSLoader({ isServer }),
-                {
-                  loader: require.resolve('@docusaurus/mdx-loader'),
-                  options: {
-                    remarkPlugins: [[remarkResistogram, { csvData }]],
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      };
+    extendMarkdownOptions(mdOptions) {
+      mdOptions.remarkPlugins = [
+        ...(mdOptions.remarkPlugins || []),
+        [remarkResistogram, { csvData }],
+      ];
+      return mdOptions;
     },
 
     getThemePaths() {
@@ -43,3 +29,5 @@ module.exports = function resistogramPlugin(context, opts = {}) {
     },
   };
 };
+
+module.exports.remarkPlugin = remarkResistogram;

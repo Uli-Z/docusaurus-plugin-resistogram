@@ -37,6 +37,18 @@ npm install docusaurus-plugin-resistogram
 
     const config: Config = {
       // ...
+      presets: [
+        [
+          'classic',
+          {
+            docs: {
+              remarkPlugins: [
+                [require('docusaurus-plugin-resistogram').remarkPlugin],
+              ],
+            },
+          },
+        ],
+      ],
       plugins: [
         [
           'docusaurus-plugin-resistogram',
