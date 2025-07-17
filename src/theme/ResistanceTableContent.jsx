@@ -21,15 +21,22 @@ const VirtualTrigger = React.forwardRef(
 
 // --- Main Component ---
 
-export default function ResistanceTableContent({ data: jsonData }) {
-  const {
+export default function ResistanceTableContent({
+  antibiotics,
+  organisms,
+  resistance,
+  sourceTree,
+  defaultSourceId,
+  locale,
+}) {
+  console.debug('[Resistogram-Debug] ResistanceTableContent rendered with props:', {
     antibiotics,
     organisms,
     resistance,
     sourceTree,
     defaultSourceId,
     locale,
-  } = useMemo(() => JSON.parse(jsonData), [jsonData]);
+  });
 
   const { colorMode } = useColorMode();
   const [selectedSourceId, setSelectedSourceId] = useState(defaultSourceId);

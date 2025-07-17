@@ -120,17 +120,16 @@ Your CSV files must follow a specific structure.
 
 ### `resistance.csv`
 
-| antibiotic_id | organism_id | n_isolates | resistance_pct | specimen |
-| ------------- | ----------- | ---------- | -------------- | -------- |
-| PEN           | E_COLI      | 123        | 85             | urine    |
-| PEN           | S_AUREUS    | 45         | 15             | blood    |
-| AMX           | E_COLI      | 120        | 90             | urine    |
+| antibiotic_id | organism_id | n_isolates | resistance_pct |
+| ------------- | ----------- | ---------- | -------------- |
+| PEN           | E_COLI      | 123        | 85             |
+| PEN           | S_AUREUS    | 45         | 15             |
+| AMX           | E_COLI      | 120        | 90             |
 
 - `antibiotic_id`: The ID of the antibiotic (must match an ID in `antibiotics.csv`).
 - `organism_id`: The ID of the organism (must match an ID in `organisms.csv`).
 - `n_isolates`: The number of isolates tested.
 - `resistance_pct`: The percentage of isolates that were resistant.
-- `specimen`: (Optional) The specimen type (e.g., `urine`, `blood`, `wound`).
 
 ## License
 
