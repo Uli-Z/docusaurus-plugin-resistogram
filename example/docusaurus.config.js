@@ -1,5 +1,4 @@
 const {themes: prismThemes} = require('prism-react-renderer');
-const {join} = require('path');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -7,28 +6,15 @@ const config = {
   tagline: 'Dinosaurs are cool',
   favicon: 'img/favicon.ico',
 
-  // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
-  future: {
-    v4: true, // Improve compatibility with the upcoming Docusaurus v4
-  },
-
-  // Set the production url of your site here
   url: 'https://your-docusaurus-site.example.com',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
 
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  organizationName: 'facebook',
+  projectName: 'docusaurus',
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
 
-  // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -36,41 +22,19 @@ const config = {
 
   presets: [
     [
-      'classic',
+      // Use the preset from the parent directory
+      require.resolve('../src/preset.js'),
       {
+        // Options for our plugin
+        dataDir: 'data',
+        
+        // Options for the docs plugin, which is loaded by our preset
         docs: {
           sidebarPath: './sidebars.js',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          remarkPlugins: [
-            [
-              require('../src/remark'),
-              {
-                dataPath: join(
-                  __dirname,
-                  '.docusaurus/docusaurus-plugin-resistogram-default/loaded-data.json',
-                ),
-              },
-            ],
-          ],
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
+        // Disable the blog plugin
+        blog: false,
+        // Options for the classic theme, which is loaded by our preset
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -79,7 +43,6 @@ const config = {
   ],
 
   themeConfig: {
-    // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
     navbar: {
       title: 'My Site',
@@ -147,16 +110,6 @@ const config = {
       darkTheme: prismThemes.dracula,
     },
   },
-
-  plugins: [
-    [
-      '..',
-      {
-        // No ID provided, so Docusaurus will use 'default'
-        dataDir: 'data',
-      },
-    ],
-  ],
 };
 
 module.exports = config;

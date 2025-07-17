@@ -1,6 +1,6 @@
-import { readFile } from 'fs/promises';
-import { join } from 'path';
-import { parse } from 'csv-parse/sync';
+const { readFileSync } = require('fs');
+const { join } = require('path');
+const { parse } = require('csv-parse/sync');
 
 // Helper to parse CSV files with consistent options
 const parseCsv = (content) =>
@@ -17,8 +17,8 @@ const parseCsv = (content) =>
   });
 
 // Generic function to load and parse a CSV file
-const loadCsv = async (dir, file) => {
-  const content = await readFile(join(dir, file), 'utf8');
+const loadCsvSync = (dir, file) => {
+  const content = readFileSync(join(dir, file), 'utf8');
   return parseCsv(content);
 };
 
@@ -59,16 +59,13 @@ const buildSourceTree = (sources) => {
 };
 
 /**
- * Loads all data from the specified data directory.
- * This function is called once at startup by the Docusaurus plugin.
+ * Synchronously loads all data from the specified data directory.
+ * This is used by the preset to load data before the remark transformer runs.
  * @param dataDir The directory where the CSV files are located.
  * @param options The plugin options.
- * @returns A promise that resolves to the fully loaded and structured data.
+ * @returns The fully loaded and structured data.
  */
-export const loadAllData = async (
-  dataDir,
-  options,
-) => {
+const loadAllDataSync = (dataDir, options = {}) => {
   const fileNames = {
     antibiotics: options.files?.antibiotics ?? 'antibiotics.csv',
     organisms: options.files?.organisms ?? 'organisms.csv',
@@ -76,20 +73,16 @@ export const loadAllData = async (
   };
 
   // Load metadata and the source manifest
-  const [antibiotics, organisms, sources] = await Promise.all([
-    loadCsv(dataDir, fileNames.antibiotics),
-    loadCsv(dataDir, fileNames.organisms),
-    loadCsv(dataDir, fileNames.data_sources),
-  ]);
+  const antibiotics = loadCsvSync(dataDir, fileNames.antibiotics);
+  const organisms = loadCsvSync(dataDir, fileNames.organisms);
+  const sources = loadCsvSync(dataDir, fileNames.data_sources);
 
   // Load all resistance files referenced in the manifest
   const resistanceData = new Map();
-  await Promise.all(
-    sources.map(async (source) => {
-      const data = await loadCsv(dataDir, source.source_file);
-      resistanceData.set(source.id, data);
-    }),
-  );
+  for (const source of sources) {
+    const data = loadCsvSync(dataDir, source.source_file);
+    resistanceData.set(source.id, data);
+  }
 
   // Build the hierarchical tree of data sources
   const sourceTree = buildSourceTree(sources);
@@ -105,3 +98,12 @@ export const loadAllData = async (
     resistance: resistanceData,
   };
 };
+
+// We keep the async version for the main plugin's loadContent lifecycle
+const loadAllData = async (dataDir, options) => {
+  // For simplicity, we just wrap the sync version in a promise.
+  // In a real-world scenario, you might keep the async implementation.
+  return Promise.resolve(loadAllDataSync(dataDir, options));
+};
+
+module.exports = { loadAllData, loadAllDataSync };

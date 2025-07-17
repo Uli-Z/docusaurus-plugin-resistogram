@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "description": "A Docusaurus plugin to display resistance data tables (resistograms) from simple CSV files.",
   "main": "src/index.js",
-  "files": [
-    "src"
-  ],
+  "exports": {
+    ".": "./src/index.js",
+    "./preset": "./src/preset.js"
+  },
   "scripts": {
-    "clean": "rm -rf dist"
+    "build": "tsc",
+    "watch": "tsc --watch"
   },
   "keywords": [
     "docusaurus",
