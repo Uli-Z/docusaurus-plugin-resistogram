@@ -1,6 +1,6 @@
 import type { LoadContext, Plugin } from "@docusaurus/types";
 import { join } from "path";
-import { ensureDirSync, writeJsonSync } from "fs-extra";
+import { ensureDirSync, writeJsonSync, copySync } from "fs-extra";
 import {
   loadSharedData,
   loadResistanceDataForSource,
@@ -50,7 +50,7 @@ export default function pluginResist(
         const headers = Object.keys(resistanceData[0] || {});
         const compressedData = [
           headers,
-          ...resistanceData.map((row) => headers.map((h) => row[h])),
+          ...resistanceData.map((row: any) => headers.map((h) => row[h])),
         ];
 
         const fileName = `resist-data-${source.file}.json`;
@@ -103,16 +103,23 @@ export default function pluginResist(
       actions.setGlobalData(globalData);
     },
 
+    async postBuild({ outDir }) {
+      const destDir = join(outDir, "assets", "json");
+      ensureDirSync(destDir);
+      copySync(pluginDataDir, destDir);
+    },
+
     getThemePath() {
       return "./theme";
     },
 
     configureWebpack() {
       return {
+        mergeStrategy: { "devServer.static": "append" },
         devServer: {
           static: {
             directory: pluginDataDir,
-            publicPath: '/assets/json',
+            publicPath: "/assets/json",
           },
         },
       };
