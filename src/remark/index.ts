@@ -1,7 +1,7 @@
 import { visit } from "unist-util-visit";
 import { toString } from "mdast-util-to-string";
 
-export default function remarkResist() {
+export default function remarkResistogram() {
   return (tree: any) => {
     let resistanceTableUsed = false;
     const pageText = tree.children.map((c: any) => toString(c)).join('\n\n');
