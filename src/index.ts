@@ -16,7 +16,7 @@ interface Opts {
   };
 }
 
-export default function pluginResist(
+export default function docusaurusPluginResistogram(
   ctx: LoadContext,
   opts: Opts = {}
 ): Plugin {
