@@ -1,11 +1,7 @@
 import type { LoadContext, Plugin } from "@docusaurus/types";
 import { join } from "path";
 import { ensureDirSync, writeJsonSync, copySync } from "fs-extra";
-import {
-  loadSharedData,
-  loadResistanceDataForSource,
-  mkSynMap,
-} from "./data";
+import { getSharedData, loadResistanceDataForSource, mkSynMap } from "./data";
 
 interface Opts {
   dataDir?: string;
@@ -38,29 +34,25 @@ export default function docusaurusPluginResistogram(
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const { abx, org, sources } = await loadSharedData(dataPath, files);
+      // Use the new cached data loader
+      const { abx, org, sources, allAbxIds, allOrgIds } = await getSharedData(dataPath, files);
 
+      // 1. Process and write resistance data for each source
       const resistanceDataFileNames = new Map<string, string>();
       for (const source of sources) {
-        const resistanceData = await loadResistanceDataForSource(
-          source,
-          dataPath
-        );
-
+        const resistanceData = await loadResistanceDataForSource(source, dataPath);
         const headers = Object.keys(resistanceData[0] || {});
+        // Compress data into an array of arrays for smaller JSON size
         const compressedData = [
           headers,
           ...resistanceData.map((row: any) => headers.map((h) => row[h])),
         ];
-
         const fileName = `resist-data-${source.source_file}.json`;
         writeJsonSync(join(pluginDataDir, fileName), compressedData);
         resistanceDataFileNames.set(source.id, fileName);
       }
 
-      const abxSyn2Id = mkSynMap(abx);
-      const orgSyn2Id = mkSynMap(org);
-
+      // 2. Create and write the shared data file for the client
       const classToAbx = new Map<string, string[]>();
       for (const antibiotic of abx) {
         if (antibiotic.class) {
@@ -73,36 +65,24 @@ export default function docusaurusPluginResistogram(
 
       const sharedDataFileName = "shared-resistogram-data.json";
       const sharedData = {
-        abx,
-        org,
-        classToAbx: Object.fromEntries(classToAbx),
-        abxSyn2Id: Object.fromEntries(abxSyn2Id),
-        orgSyn2Id: Object.fromEntries(orgSyn2Id),
+        // We no longer need to send all synonyms to the client, only the necessary mappings
         id2MainSyn: Object.fromEntries(
-          new Map(
-            [...abx, ...org].map((r: any) => [
-              r.amr_code,
-              r.full_name_de,
-            ])
-          )
+          new Map([...abx, ...org].map((r: any) => [r.amr_code, r.full_name_de]))
         ),
         id2ShortName: Object.fromEntries(
-          new Map(
-            [...abx, ...org].map((r: any) => [r.amr_code, r.short_name_de])
-          )
+          new Map([...abx, ...org].map((r: any) => [r.amr_code, r.short_name_de]))
         ),
-        // Filter to only include actual antibiotics/organisms, not their classes
-        allAbxIds: abx.filter((r: any) => r.class).map((r: any) => r.amr_code),
-        allOrgIds: org.filter((r: any) => r.class_id).map((r: any) => r.amr_code),
+        classToAbx: Object.fromEntries(classToAbx),
+        allAbxIds, // Still needed for sorting/grouping on the client
       };
       writeJsonSync(join(pluginDataDir, sharedDataFileName), sharedData);
 
+      // 3. Set global data for the Docusaurus application
       const globalData = {
         sources,
         resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
         sharedDataFileName,
       };
-
       actions.setGlobalData(globalData);
     },
 
