@@ -46,6 +46,7 @@
   "devDependencies": {
     "@docusaurus/mdx-loader": "^3",
     "@docusaurus/types": "^3",
+    "@types/fs-extra": "^11.0.4",
     "fs-extra": "^11.3.0",
     "tsup": "^8",
     "typescript": "^5"
