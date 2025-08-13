@@ -56,7 +56,7 @@ export function useResistanceTableData(
   const p = useMemo(() => parseParams(paramString), [paramString]);
 
   const sharedDataUrl = useBaseUrl(pluginData.sharedDataFileName ? `/assets/json/${pluginData.sharedDataFileName}` : null);
-  const resistanceFileName = selectedSource ? pluginData.resistanceDataFileNames?.[selectedSource.file] : null;
+  const resistanceFileName = selectedSource ? pluginData.resistanceDataFileNames?.[selectedSource.id] : null;
   const resistanceDataUrl = useBaseUrl(resistanceFileName ? `/assets/json/${resistanceFileName}` : null);
 
   useEffect(() => {
@@ -67,7 +67,6 @@ export function useResistanceTableData(
         return;
       }
       try {
-        // Initial load starts here. We set loading to true and wait for all data.
         setIsLoading(true);
         const data = await fetchJson(sharedDataUrl);
         setSharedData(data);
@@ -81,10 +80,8 @@ export function useResistanceTableData(
 
   useEffect(() => {
     async function loadResistance() {
-      // Don't fetch if the shared data hasn't loaded yet.
       if (!sharedData) return;
 
-      // If there's no source selected, it's not an error, just clear the data and stop loading.
       if (!resistanceDataUrl || !selectedSource) {
         setResistanceData(null);
         setIsLoading(false);
@@ -92,14 +89,12 @@ export function useResistanceTableData(
       }
 
       try {
-        // A new fetch is starting.
         setIsLoading(true);
         const data = await fetchResistanceData(resistanceDataUrl);
         setResistanceData(data);
       } catch (e) {
         setError(e);
       } finally {
-        // This fetch is complete.
         setIsLoading(false);
       }
     }
@@ -130,8 +125,7 @@ export function useResistanceTableData(
       pageText,
     );
 
-    if (p.abx !== 'auto') return initialIds;
-
+    // Always expand class IDs to their member antibiotic IDs, regardless of the parameter.
     const expanded = new Set<string>();
     for (const id of initialIds) {
       if (classToAbx.has(id)) {

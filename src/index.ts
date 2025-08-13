@@ -23,22 +23,22 @@ export default function docusaurusPluginResistogram(
   const { siteDir, generatedFilesDir } = ctx;
   const dataDir = opts.dataDir ?? "data";
   const files = {
-    antibiotics: opts.files?.antibiotics ?? "antibiotics.json",
-    organisms: opts.files?.organisms ?? "organisms.json",
-    sources: opts.files?.sources ?? "data-src.json",
+    antibiotics: opts.files?.antibiotics ?? "antibiotics.csv",
+    organisms: opts.files?.organisms ?? "organisms.csv",
+    sources: opts.files?.sources ?? "data_sources.csv",
   };
   const dataPath = join(siteDir, dataDir);
-  const pluginDataDir = join(generatedFilesDir, "docusaurus-plugin-resistogram");
+  const pluginDataDir = join(
+    generatedFilesDir,
+    "docusaurus-plugin-resistogram"
+  );
   ensureDirSync(pluginDataDir);
 
   return {
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const { abxClasses, abxItems, org, sources } = await loadSharedData(
-        dataPath,
-        files
-      );
+      const { abx, org, sources } = await loadSharedData(dataPath, files);
 
       const resistanceDataFileNames = new Map<string, string>();
       for (const source of sources) {
@@ -53,27 +53,27 @@ export default function docusaurusPluginResistogram(
           ...resistanceData.map((row: any) => headers.map((h) => row[h])),
         ];
 
-        const fileName = `resist-data-${source.file}.json`;
+        const fileName = `resist-data-${source.source_file}.json`;
         writeJsonSync(join(pluginDataDir, fileName), compressedData);
-        resistanceDataFileNames.set(source.file, fileName);
+        resistanceDataFileNames.set(source.id, fileName);
       }
 
-      const abx = [...abxClasses, ...abxItems];
       const abxSyn2Id = mkSynMap(abx);
       const orgSyn2Id = mkSynMap(org);
 
       const classToAbx = new Map<string, string[]>();
-      for (const abx of abxItems) {
-        if (abx.class) {
-          if (!classToAbx.has(abx.class)) classToAbx.set(abx.class, []);
-          classToAbx.get(abx.class)!.push(abx.id);
+      for (const antibiotic of abx) {
+        if (antibiotic.class) {
+          if (!classToAbx.has(antibiotic.class)) {
+            classToAbx.set(antibiotic.class, []);
+          }
+          classToAbx.get(antibiotic.class)!.push(antibiotic.amr_code);
         }
       }
 
       const sharedDataFileName = "shared-resistogram-data.json";
       const sharedData = {
-        abxClasses,
-        abxItems,
+        abx,
         org,
         classToAbx: Object.fromEntries(classToAbx),
         abxSyn2Id: Object.fromEntries(abxSyn2Id),
@@ -81,16 +81,19 @@ export default function docusaurusPluginResistogram(
         id2MainSyn: Object.fromEntries(
           new Map(
             [...abx, ...org].map((r: any) => [
-              r.id,
-              r.full_name ?? r.name ?? r.synonyms[0],
+              r.amr_code,
+              r.full_name_de,
             ])
           )
         ),
         id2ShortName: Object.fromEntries(
-          new Map([...abx, ...org].map((r: any) => [r.id, r.short_name]))
+          new Map(
+            [...abx, ...org].map((r: any) => [r.amr_code, r.short_name_de])
+          )
         ),
-        allAbxIds: abx.map((r: any) => r.id),
-        allOrgIds: org.map((r: any) => r.id),
+        // Filter to only include actual antibiotics/organisms, not their classes
+        allAbxIds: abx.filter((r: any) => r.class).map((r: any) => r.amr_code),
+        allOrgIds: org.filter((r: any) => r.class_id).map((r: any) => r.amr_code),
       };
       writeJsonSync(join(pluginDataDir, sharedDataFileName), sharedData);
 
