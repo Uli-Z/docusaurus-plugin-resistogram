@@ -45,48 +45,7 @@ export const escapeRegExp = (str: string): string =>
     ? RegExp.escape(str)
     : str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-export const resolveIds = (
-  param: string | undefined,
-  allIds: string[],
-  synMap: Record<string, string>,
-  pageText: string,
-): string[] => {
-  const synLower = Object.fromEntries(
-    Object.entries(synMap).map(([k, v]) => [k.toLowerCase(), v]),
-  );
 
-  if (param === 'auto') {
-    const lower = pageText.toLowerCase();
-    const wordSet = new Set(lower.match(/[a-z0-9]+/g) ?? []);
-
-    const detected = Object.keys(synLower)
-      .filter((syn) =>
-        syn.includes(' ')
-          ? new RegExp(`\\b${escapeRegExp(syn)}\\b`, 'i').test(pageText)
-          : wordSet.has(syn),
-      )
-      .map((syn) => synLower[syn]);
-
-    return [...new Set(detected)];
-  }
-
-  if (!param || param === 'all') return allIds;
-
-  return Array.from(
-    new Set(
-      param
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean)
-        .map((t) => {
-          const upper = t.toUpperCase();
-          if (allIds.includes(upper)) return upper;
-          return synLower[t.toLowerCase()] ?? null;
-        })
-        .filter(Boolean),
-    ),
-  ) as string[];
-};
 
 export const buildMatrix = (
   rowIds: string[],

@@ -19,27 +19,36 @@ const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // This is a virtual, invisible trigger for the single global tooltip.
-// Radix UI will use this element's position to place the tooltip.
-// We manually update its position to match the currently hovered cell.
 const VirtualTrigger = React.forwardRef<HTMLSpanElement, {}>(function VirtualTrigger(props, ref) {
   return <span ref={ref} style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0 }} />;
 });
 
+interface ResistanceTableProps {
+  antibioticIds: string[];
+  organismIds: string[];
+  layout?: 'auto' | 'antibiotics-rows' | 'organisms-rows';
+  showEmpty?: 'true' | 'false';
+}
 
-export default function ResistanceTable({
-  params: paramString,
-  pageText: pageTextJson,
-}: {
-  params: string;
-  pageText: string;
-}) {
-  const pageText = JSON.parse(pageTextJson) as string;
+export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds'> & { antibioticIds: string, organismIds: string }) {
+  const {
+    antibioticIds: antibioticIdsJson,
+    organismIds: organismIdsJson,
+    layout = 'auto',
+    showEmpty: showEmptyProp = 'false',
+  } = props;
+
+  // The props from MDX are strings, so we need to parse them back into arrays.
+  const antibioticIds = useMemo(() => JSON.parse(antibioticIdsJson), [antibioticIdsJson]);
+  const organismIds = useMemo(() => JSON.parse(organismIdsJson), [organismIdsJson]);
+
+
   const { colorMode } = useColorMode();
 
   // State for table interactivity and display
-  const [showEmpty, setShowEmpty] = useState(false);
+  const [showEmpty, setShowEmpty] = useState(showEmptyProp === 'true');
   const [display, setDisplay] = useState<'full' | 'compact' | 'superCompact'>('full');
-  const [isVisible, setIsVisible] = useState(false); // Start as invisible
+  const [isVisible, setIsVisible] = useState(false);
   const [hover, setHover] = useState<{ row: number | null; col: number | null }>({ row: null, col: null });
   const [selectedSource, setSelectedSource] = useState<any>(null);
 
@@ -55,91 +64,69 @@ export default function ResistanceTable({
   const {
     isLoading,
     error,
-    resistanceData,
     data,
     cols,
     rowsAreAbx,
     emptyRowIds,
     emptyColIds,
     sources,
-    p,
-  } = useResistanceTableData(paramString, pageText, selectedSource, showEmpty);
+  } = useResistanceTableData(antibioticIds, organismIds, layout, selectedSource, showEmpty);
 
-  // This layout effect is the core of the "Render, Shrink, then Show" logic.
-  // It runs synchronously after a render but before the browser paints.
+  // "Render, Shrink, then Show" logic
   useIsomorphicLayoutEffect(() => {
     if (isLoading || error || !containerRef.current || !tableRef.current) return;
 
     const containerWidth = containerRef.current.clientWidth;
     const tableWidth = tableRef.current.scrollWidth;
-
     const HYST = 2; // Hysteresis
 
-    // 1. Shrink if necessary
     if (display === 'full' && tableWidth > containerWidth + HYST) {
       setDisplay('compact');
-      return; // Re-render will trigger this effect again
+      return;
     }
     if (display === 'compact' && tableWidth > containerWidth + HYST) {
       setDisplay('superCompact');
-      return; // Re-render will trigger this effect again
+      return;
     }
-
-    // 2. Once stable, make it visible
     if (!isVisible) {
       setIsVisible(true);
     }
+  }, [display, isVisible, data, cols, isLoading, error]);
 
-  }, [display, isVisible, data, cols, isLoading, error]); // Rerun if display mode or data changes
-
-  // This effect handles resizing of the container after the initial render.
+  // Resize observer to handle container size changes
   useIsomorphicLayoutEffect(() => {
     if (!containerRef.current) return;
-
     const node = containerRef.current;
     let raf = 0;
-
-    const ro = new ResizeObserver(([entry]) => {
+    const ro = new ResizeObserver(() => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        // On resize, we reset to 'full' and let the shrink logic handle it.
-        // This correctly handles cases where the container grows.
         setDisplay('full');
-        setIsVisible(false); // Hide to prevent flicker on resize
+        setIsVisible(false);
       });
     });
-
     ro.observe(node, { box: 'content-box' });
-
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, []); // Only runs once to attach the observer
+  }, []);
 
-
-  // Effect to set the initial data source
+  // Set initial data source
   useEffect(() => {
     if (!selectedSource && sources.length) setSelectedSource(sources[0]);
   }, [sources, selectedSource]);
 
-  // Effect to update visibility of empty rows/cols based on params
+  // Update showEmpty state when prop changes
   useEffect(() => {
-    setShowEmpty(p.showEmpty === 'true');
-    // When params change, we need to re-evaluate the layout
+    setShowEmpty(showEmptyProp === 'true');
     setDisplay('full');
     setIsVisible(false);
-  }, [p.showEmpty]);
+  }, [showEmptyProp]);
 
-
-  const showTooltipTimeout = useRef<NodeJS.Timeout>();
-
-  // Callbacks for the global tooltip
+  // Tooltip handling callbacks
   const showTooltip = useCallback((content: React.ReactNode, element: HTMLElement) => {
-    // Clear any pending tooltip show events
     clearTimeout(showTooltipTimeout.current);
-
-    // Set a new timeout to show the tooltip after a short delay
     showTooltipTimeout.current = setTimeout(() => {
       if (!virtualTriggerRef.current) return;
       const rect = element.getBoundingClientRect();
@@ -147,17 +134,16 @@ export default function ResistanceTable({
       virtualTriggerRef.current.style.top = `${rect.top}px`;
       setTooltipContent(content);
       setTooltipOpen(true);
-    }, 50); // A 50ms delay is usually enough to prevent race conditions
+    }, 50);
   }, []);
 
   const hideTooltip = useCallback(() => {
-    // Clear any pending tooltip show events
     clearTimeout(showTooltipTimeout.current);
-    // Hide the tooltip immediately
     setTooltipOpen(false);
   }, []);
+  const showTooltipTimeout = useRef<NodeJS.Timeout>();
 
-  // Callbacks for row/column highlighting
+  // Hover handling callbacks
   const handleSetHover = useCallback((row: number, col: number) => setHover({ row, col }), []);
   const handleClearHover = useCallback(() => setHover({ row: null, col: null }), []);
 
@@ -182,121 +168,71 @@ export default function ResistanceTable({
   };
 
   const renderContent = () => {
-    // Determine the state of the data
     const isStale = isLoading && data && data.length > 0;
     const isInitialLoad = isLoading && (!data || data.length === 0);
 
-    // The content inside the table container
-    let content;
-
     if (isInitialLoad) {
-      content = (
+      return (
         <div className={styles.placeholder}>
           <div className={styles.spinner} />
           Loading resistance data...
         </div>
       );
-    } else if (error) {
-      content = <div className={styles.error}>Error: {error.message}</div>;
-    } else if (!data || data.length === 0) {
-      content = (
+    }
+    if (error) {
+      return <div className={styles.error}>Error: {error.message}</div>;
+    }
+    if (!data || data.length === 0) {
+      return (
         <div className={styles.noDataContainer}>
           <p><strong>Resistance Table</strong></p>
-          <p>No matching resistance data found in this source.</p>
-          <ul>
-            <li>Antibiotics: {p.abx || 'all'}</li>
-            <li>Organisms: {p.org || 'all'}</li>
-          </ul>
+          <p>No matching resistance data found for the selected criteria in this source.</p>
         </div>
-      );
-    } else {
-      // We have data, so render the table.
-      // The overlay will be shown if the data is stale.
-      content = (
-        <>
-          {isStale && (
-            <div className={styles.tableOverlay}>
-              <div className={styles.spinner} />
-            </div>
-          )}
-          <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
-            <TableHeader
-              cols={cols}
-              displayMode={display}
-              hoveredCol={hover.col}
-              onSetHover={handleSetHover}
-              onClearHover={handleClearHover}
-              onShowTooltip={showTooltip}
-              onHideTooltip={hideTooltip}
-              styles={styles}
-            />
-            <TableBody
-              data={data}
-              cols={cols}
-              displayMode={display}
-              rowsAreAbx={rowsAreAbx}
-              hoveredRow={hover.row}
-              hoveredCol={hover.col}
-              onSetHover={handleSetHover}
-              onClearHover={handleClearHover}
-              onShowTooltip={showTooltip}
-              onHideTooltip={hideTooltip}
-              styles={styles}
-              colorMode={colorMode}
-            />
-          </table>
-          <Legend cols={cols} displayMode={display} styles={styles} />
-          <div className={styles.sourceInfo}>
-            {renderHiddenInfo()}
-            Source:{' '}
-            <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">
-              {selectedSource.long_name}
-            </a>
-          </div>
-        </>
       );
     }
 
     return (
-      <div className={styles.tableContainer}>
-        {content}
-      </div>
+      <>
+        {isStale && (
+          <div className={styles.tableOverlay}>
+            <div className={styles.spinner} />
+          </div>
+        )}
+        <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <TableHeader {...{ cols, displayMode: display, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles }} />
+          <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode }} />
+        </table>
+        <Legend {...{ cols, displayMode: display, styles }} />
+        <div className={styles.sourceInfo}>
+          {renderHiddenInfo()}
+          Source:{' '}
+          <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">
+            {selectedSource.long_name}
+          </a>
+        </div>
+      </>
     );
   };
 
   if (!sources) {
-    return <div className={styles.error}>Error: plugin data not found.</div>;
+    return <div className={styles.error}>Error: Docusaurus plugin data not found.</div>;
   }
 
   return (
     <RadixTooltip.Provider>
-      <div ref={containerRef}>
+      <div ref={containerRef} style={{ visibility: isVisible ? 'visible' : 'hidden', minHeight: '150px' }}>
         <div className={styles.rootContainer}>
           {sources.length > 0 && (
-            <SourceSwitcher
-              sources={sources}
-              selected={selectedSource}
-              onSelect={setSelectedSource}
-              styles={styles}
-            />
+            <SourceSwitcher {...{ sources, selected: selectedSource, onSelect: setSelectedSource, styles }} />
           )}
-          {renderContent()}
+          <div className={styles.tableContainer}>
+            {renderContent()}
+          </div>
         </div>
         {!isVisible && !isLoading && <div className={styles.placeholder}>Calculating table layout...</div>}
       </div>
 
-      {/* This is the single, global tooltip that provides high performance. */}
-      <RadixTooltip.Root
-        open={tooltipOpen}
-        onOpenChange={(isOpen) => {
-          setTooltipOpen(isOpen);
-          // When the tooltip closes (e.g., by clicking outside), clear the hover state
-          // to remove any row/column highlighting. This is key for touch support.
-          if (!isOpen) {
-            handleClearHover();
-          }
-        }}
-      >
+      <RadixTooltip.Root open={tooltipOpen} onOpenChange={setTooltipOpen}>
         <RadixTooltip.Trigger asChild><VirtualTrigger ref={virtualTriggerRef} /></RadixTooltip.Trigger>
         <RadixTooltip.Portal>
           <RadixTooltip.Content side="top" align="center" sideOffset={5} className={styles.tooltipContent}>

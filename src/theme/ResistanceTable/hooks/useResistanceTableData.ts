@@ -5,8 +5,6 @@ import {
   buildMatrix,
   formatMatrix,
   groupAndSortAntibiotics,
-  parseParams,
-  resolveIds,
 } from '../utils';
 import { Source } from '../../../types';
 
@@ -38,8 +36,9 @@ async function fetchResistanceData(path: string) {
 }
 
 export function useResistanceTableData(
-  paramString: string,
-  pageText: string,
+  abxIds: string[],
+  orgIds: string[],
+  layout: string | undefined,
   selectedSource: Source | null,
   showEmpty: boolean,
 ) {
@@ -53,26 +52,26 @@ export function useResistanceTableData(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const p = useMemo(() => parseParams(paramString), [paramString]);
-
   const sharedDataUrl = useBaseUrl(pluginData.sharedDataFileName ? `/assets/json/${pluginData.sharedDataFileName}` : null);
   const resistanceFileName = selectedSource ? pluginData.resistanceDataFileNames?.[selectedSource.id] : null;
   const resistanceDataUrl = useBaseUrl(resistanceFileName ? `/assets/json/${resistanceFileName}` : null);
 
   useEffect(() => {
     async function loadShared() {
+      console.log('[useResistanceTableData] Loading shared data...');
       if (!sharedDataUrl) {
         setError(new Error("Plugin data not found."));
         setIsLoading(false);
         return;
       }
       try {
-        setIsLoading(true);
+        // Don't set loading to true here, it's set initially
         const data = await fetchJson(sharedDataUrl);
         setSharedData(data);
+        console.log('[useResistanceTableData] Shared data loaded.');
       } catch (e) {
         setError(e);
-        setIsLoading(false);
+        setIsLoading(false); // Set loading to false on error
       }
     }
     loadShared();
@@ -80,22 +79,26 @@ export function useResistanceTableData(
 
   useEffect(() => {
     async function loadResistance() {
-      if (!sharedData) return;
+      if (!sharedData) return; // Wait for shared data to be loaded first
+      console.log('[useResistanceTableData] Loading resistance data for source:', selectedSource?.id);
 
       if (!resistanceDataUrl || !selectedSource) {
         setResistanceData(null);
         setIsLoading(false);
+        console.log('[useResistanceTableData] No source selected or no data URL. Loading finished.');
         return;
       }
 
       try {
-        setIsLoading(true);
+        setIsLoading(true); // Set loading to true before fetching this specific source
         const data = await fetchResistanceData(resistanceDataUrl);
         setResistanceData(data);
+        console.log('[useResistanceTableData] Resistance data loaded.');
       } catch (e) {
         setError(e);
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // This is the final loading step
+        console.log('[useResistanceTableData] Final loading state set to false.');
       }
     }
     loadResistance();
@@ -106,9 +109,6 @@ export function useResistanceTableData(
     id2ShortName: id2Short,
     allAbxIds,
     classToAbx: classToAbxObj,
-    abxSyn2Id,
-    allOrgIds,
-    orgSyn2Id,
   } = sharedData || {};
 
   const classToAbx = useMemo(
@@ -116,58 +116,21 @@ export function useResistanceTableData(
     [classToAbxObj],
   );
 
-  const abxIds = useMemo(() => {
-    if (!sharedData) return [];
-    const initialIds = resolveIds(
-      p.abx,
-      allAbxIds ?? [],
-      abxSyn2Id ?? {},
-      pageText,
-    );
-
-    // Always expand class IDs to their member antibiotic IDs, regardless of the parameter.
-    const expanded = new Set<string>();
-    for (const id of initialIds) {
-      if (classToAbx.has(id)) {
-        classToAbx.get(id)!.forEach(memberId => expanded.add(memberId));
-      } else {
-        expanded.add(id);
-      }
-    }
-    return Array.from(expanded);
-  }, [p.abx, sharedData, pageText, classToAbx]);
-
-  const orgIds = useMemo(
-    () => {
-      if (!sharedData) return [];
-      return resolveIds(
-        p.org,
-        allOrgIds ?? [],
-        orgSyn2Id ?? {},
-        pageText,
-      )
-    },
-    [p.org, sharedData, pageText],
-  );
-
   const sortedAbxIds = useMemo(
     () => groupAndSortAntibiotics(abxIds, allAbxIds ?? [], classToAbx),
     [abxIds, allAbxIds, classToAbx],
   );
 
-  // layout switch
   const { rowIds, colIds, rowsAreAbx } = useMemo(() => {
-    const autoLayout =
-      p.layout === 'auto' || !p.layout ? 'auto' : p.layout;
     let rIds: string[] = sortedAbxIds;
     let cIds: string[] = orgIds;
     let rAreAbx = true;
 
-    if (autoLayout === 'organisms-rows') {
+    if (layout === 'organisms-rows') {
       rIds = orgIds;
       cIds = sortedAbxIds;
       rAreAbx = false;
-    } else if (autoLayout === 'auto') {
+    } else if (layout === 'auto') {
       if (orgIds.length > 4 && abxIds.length && orgIds.length / abxIds.length > 2) {
         rIds = orgIds;
         cIds = sortedAbxIds;
@@ -175,7 +138,7 @@ export function useResistanceTableData(
       }
     }
     return { rowIds: rIds, colIds: cIds, rowsAreAbx: rAreAbx };
-  }, [p.layout, sortedAbxIds, orgIds, abxIds]);
+  }, [layout, sortedAbxIds, orgIds, abxIds.length]);
 
   const matrix = useMemo(
     () => buildMatrix(rowIds, colIds, rowsAreAbx, resistanceData ?? []),
@@ -183,15 +146,15 @@ export function useResistanceTableData(
   );
 
   const { emptyRowIds, emptyColIds } = useMemo(() => {
-    const emptyRows = rowIds.filter((id) => matrix.get(id)?.size === 0);
+    const emptyRows = new Set(rowIds.filter((id) => (matrix.get(id)?.size ?? 0) === 0));
     const nonEmptyCols = new Set<string>();
     matrix.forEach((colMap) => colMap.forEach((_v, cId) => nonEmptyCols.add(cId)));
-    const emptyCols = colIds.filter((id) => !nonEmptyCols.has(id));
+    const emptyCols = new Set(colIds.filter((id) => !nonEmptyCols.has(id)));
     return { emptyRowIds: emptyRows, emptyColIds: emptyCols };
   }, [matrix, rowIds, colIds]);
 
-  const finalRowIds = showEmpty ? rowIds : rowIds.filter((id) => !emptyRowIds.includes(id));
-  const finalColIds = showEmpty ? colIds : colIds.filter((id) => !emptyColIds.includes(id));
+  const finalRowIds = useMemo(() => showEmpty ? rowIds : rowIds.filter((id) => !emptyRowIds.has(id)), [showEmpty, rowIds, emptyRowIds]);
+  const finalColIds = useMemo(() => showEmpty ? colIds : colIds.filter((id) => !emptyColIds.has(id)), [showEmpty, colIds, emptyColIds]);
 
   const { data, cols } = useMemo(
     () => formatMatrix(matrix, finalRowIds, finalColIds, new Map(Object.entries(id2Main ?? {})), new Map(Object.entries(id2Short ?? {}))),
@@ -201,16 +164,11 @@ export function useResistanceTableData(
   return {
     isLoading,
     error,
-    resistanceData,
     data,
     cols,
     rowsAreAbx,
-    emptyRowIds,
-    emptyColIds,
+    emptyRowIds: Array.from(emptyRowIds),
+    emptyColIds: Array.from(emptyColIds),
     sources: pluginData?.sources ?? [],
-    abxIds,
-    orgIds,
-    p,
-    id2Main
   };
 }
