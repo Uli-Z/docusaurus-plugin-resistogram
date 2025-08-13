@@ -8,16 +8,14 @@ const CSV = (txt: string) =>
     columns: true,
     skip_empty_lines: true,
     trim: true,
+    bom: true, // Add this line to handle Byte Order Mark
     cast: (value, context) => {
       if (context.header) return value;
-      if (context.column === 'resistance') return parseFloat(value);
-      if (context.column === 'total') return parseInt(value, 10);
+      if (context.column === 'resistance_pct') return parseFloat(value);
+      if (context.column === 'n_isolates') return parseInt(value, 10);
       return value;
     },
   });
-
-const loadJson = (dir: string, file: string) =>
-  readFile(join(dir, file), "utf8").then(JSON.parse);
 
 const loadCsv = (dir: string, file: string) =>
   readFile(join(dir, file), "utf8").then(CSV);
@@ -30,30 +28,28 @@ export const loadSharedData = async (
     sources: string;
   }
 ) => {
-  const [abxData, org, sources] = await Promise.all([
-    loadJson(dir, files.antibiotics),
-    loadJson(dir, files.organisms),
-    loadJson(dir, files.sources),
+  const [abx, org, sources] = await Promise.all([
+    loadCsv(dir, files.antibiotics),
+    loadCsv(dir, files.organisms),
+    loadCsv(dir, files.sources),
   ]);
 
-  const abxClasses = abxData.classes;
-  const abxItems = abxData.antibiotics;
-
-  return { abxClasses, abxItems, org, sources };
+  return { abx, org, sources };
 };
 
 export const loadResistanceDataForSource = (source: Source, dataDir: string) => {
-  const csvPath = join(dataDir, source.file);
+  const csvPath = join(dataDir, source.source_file);
   return readFile(csvPath, "utf8").then(CSV);
 };
 
 export const mkSynMap = (rows: any[]) =>
   rows.reduce<Map<string, string>>((m, r) => {
-    for (const s of r.synonyms ?? []) {
-      m.set(s.trim().toLowerCase(), r.id);
+    // Synonyms are in a single string, separated by semicolons
+    for (const s of (r.synonyms_de ?? '').split(';')) {
+      if (s) m.set(s.trim().toLowerCase(), r.amr_code);
     }
-    const name = r.full_name ?? r.name;
-    if (name) m.set(name.trim().toLowerCase(), r.id);
-    if (r.short_name) m.set(r.short_name.trim().toLowerCase(), r.id);
+    // Add full name and short name to the map
+    if (r.full_name_de) m.set(r.full_name_de.trim().toLowerCase(), r.amr_code);
+    if (r.short_name_de) m.set(r.short_name_de.trim().toLowerCase(), r.amr_code);
     return m;
   }, new Map());

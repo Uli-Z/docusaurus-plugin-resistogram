@@ -20,7 +20,7 @@ export const SourceSwitcher = ({
       <DropdownMenu.Trigger asChild>
         <button className={styles.sourceSwitcherTrigger}>
           <span className={styles.sourceSwitcherTriggerInner}>
-            <span>{selected?.short_name ?? '—'}</span>
+            <span>{selected?.source_short_name_de ?? '—'}</span>
             <ChevronDownIcon className={styles.sourceSwitcherChevron} aria-hidden />
           </span>
         </button>
@@ -29,11 +29,11 @@ export const SourceSwitcher = ({
         <DropdownMenu.Content className={styles.sourceSwitcherContent} sideOffset={5}>
           {sources.map((s) => (
             <DropdownMenu.Item
-              key={s.file}
+              key={s.id}
               className={styles.sourceSwitcherItem}
               onSelect={() => onSelect(s)}
             >
-              {s.short_name}
+              {s.name_de}
             </DropdownMenu.Item>
           ))}
         </DropdownMenu.Content>
