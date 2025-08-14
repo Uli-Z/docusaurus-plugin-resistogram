@@ -11,7 +11,7 @@ export default defineConfig({
     video: 'retain-on-failure'
   },
   webServer: {
-      command: 'npm run site:serve',
+      command: 'npm run site:build && npm run site:serve',
       cwd: 'example',
       url: 'http://127.0.0.1:3000',
       reuseExistingServer: !process.env.CI,

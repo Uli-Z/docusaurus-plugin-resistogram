@@ -1,0 +1,25 @@
+---
+title: Resistogram Test Page
+---
+
+# Resistogram Test Page
+
+This page is used for E2E testing of the resistogram component with different `src` parameters.
+
+## Default (Newest)
+
+This should display data from the newest source (ARS 2023).
+
+%%RESIST abx=all org=all%%
+
+## Filter by Year (2023)
+
+This should also display data from ARS 2023.
+
+%%RESIST abx=all org=all src=2023%%
+
+## Filter by Name (EUCAST)
+
+This should display data from the EUCAST source.
+
+%%RESIST abx=all org=all src=EUCAST%%

@@ -1,6 +1,6 @@
 import { visit } from "unist-util-visit";
 import { toString } from "mdast-util-to-string";
-import { getSharedData, resolveIds } from "../data";
+import { getSharedData, resolveIds, selectDataSource } from "../data";
 import { join } from "path";
 
 // AST → Plaintext (robust über MD/MDX, ohne Code/InlineCode, ohne %%RESIST-Zeilen)
@@ -84,7 +84,7 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
     // All data loading and processing happens here, once per page, during build.
     const siteDir = file.cwd; // `cwd` is the site directory
     const dataPath = join(siteDir, dataDir);
-    const { abxSyn2Id, orgSyn2Id, allAbxIds, allOrgIds } = await getSharedData(dataPath, {
+    const { abxSyn2Id, orgSyn2Id, allAbxIds, allOrgIds, sources } = await getSharedData(dataPath, {
         antibiotics: files.antibiotics ?? "antibiotics.csv",
         organisms: files.organisms ?? "organisms.csv",
         sources: files.sources ?? "data_sources.csv",
@@ -96,6 +96,8 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
       // Resolve the 'auto' or 'all' params into concrete ID lists
       const antibioticIds = resolveIds(params.abx, allAbxIds, abxSyn2Id, pageText);
       const organismIds = resolveIds(params.org, allOrgIds, orgSyn2Id, pageText);
+      
+      const selectedSource = selectDataSource(params.src, sources);
 
       // Create the new MDX node for the React component
       const mdxNode = {
@@ -104,6 +106,7 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
         attributes: [
           { type: "mdxJsxAttribute", name: "antibioticIds", value: JSON.stringify(antibioticIds) },
           { type: "mdxJsxAttribute", name: "organismIds", value: JSON.stringify(organismIds) },
+          { type: "mdxJsxAttribute", name: "dataSourceId", value: selectedSource.id },
           // Pass through other parameters like layout, showEmpty etc.
           ...Object.entries(params).map(([key, value]) => ({
             type: "mdxJsxAttribute",
