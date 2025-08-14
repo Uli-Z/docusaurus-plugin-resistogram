@@ -105,12 +105,11 @@ export function useResistanceTableData(
         setIsLoading(true); // Set loading to true before fetching this specific source
         const data = await fetchResistanceData(resistanceDataUrl);
         setResistanceData(data);
-        console.log('[useResistanceTableData] Resistance data loaded.');
       } catch (e) {
         setError(e);
       } finally {
         setIsLoading(false); // This is the final loading step
-        console.log('[useResistanceTableData] Final loading state set to false.');
+        
       }
     }
     loadResistance();
