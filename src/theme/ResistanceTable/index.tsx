@@ -12,13 +12,11 @@ import { useResistanceTableData } from './hooks/useResistanceTableData';
 import { SourceSwitcher } from './ui/components';
 import { TableHeader, TableBody, Legend } from './components';
 import styles from './styles.module.css';
+import { Source } from '../../../types';
 
-// A helper hook to safely use useLayoutEffect on the client and
-// fall back to useEffect on the server to prevent warnings during SSR.
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-// This is a virtual, invisible trigger for the single global tooltip.
 const VirtualTrigger = React.forwardRef<HTMLSpanElement, {}>(function VirtualTrigger(props, ref) {
   return <span ref={ref} style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0 }} />;
 });
@@ -38,26 +36,21 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     showEmpty: showEmptyProp = 'false',
   } = props;
 
-  // The props from MDX are strings, so we need to parse them back into arrays.
   const antibioticIds = useMemo(() => JSON.parse(antibioticIdsJson), [antibioticIdsJson]);
   const organismIds = useMemo(() => JSON.parse(organismIdsJson), [organismIdsJson]);
 
-
   const { colorMode } = useColorMode();
 
-  // State for table interactivity and display
   const [showEmpty, setShowEmpty] = useState(showEmptyProp === 'true');
   const [display, setDisplay] = useState<'full' | 'compact' | 'superCompact'>('full');
   const [isVisible, setIsVisible] = useState(false);
   const [hover, setHover] = useState<{ row: number | null; col: number | null }>({ row: null, col: null });
-  const [selectedSource, setSelectedSource] = useState<any>(null);
+  const [selectedSource, setSelectedSource] = useState<Source | null>(null);
 
-  // State for the single, global tooltip
   const [tooltipContent, setTooltipContent] = useState<React.ReactNode>(null);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const virtualTriggerRef = useRef<HTMLSpanElement>(null);
 
-  // Refs for measurement
   const containerRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
 
@@ -70,30 +63,19 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     emptyRowIds,
     emptyColIds,
     sources,
+    flattendSources,
   } = useResistanceTableData(antibioticIds, organismIds, layout, selectedSource, showEmpty);
 
-  // "Render, Shrink, then Show" logic
   useIsomorphicLayoutEffect(() => {
     if (isLoading || error || !containerRef.current || !tableRef.current) return;
-
     const containerWidth = containerRef.current.clientWidth;
     const tableWidth = tableRef.current.scrollWidth;
-    const HYST = 2; // Hysteresis
-
-    if (display === 'full' && tableWidth > containerWidth + HYST) {
-      setDisplay('compact');
-      return;
-    }
-    if (display === 'compact' && tableWidth > containerWidth + HYST) {
-      setDisplay('superCompact');
-      return;
-    }
-    if (!isVisible) {
-      setIsVisible(true);
-    }
+    const HYST = 2;
+    if (display === 'full' && tableWidth > containerWidth + HYST) setDisplay('compact');
+    else if (display === 'compact' && tableWidth > containerWidth + HYST) setDisplay('superCompact');
+    if (!isVisible) setIsVisible(true);
   }, [display, isVisible, data, cols, isLoading, error]);
 
-  // Resize observer to handle container size changes
   useIsomorphicLayoutEffect(() => {
     if (!containerRef.current) return;
     const node = containerRef.current;
@@ -112,22 +94,20 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     };
   }, []);
 
-  // Set initial data source
   useEffect(() => {
-    if (!selectedSource && sources.length) setSelectedSource(sources[0]);
-  }, [sources, selectedSource]);
+    if (!selectedSource && flattendSources.length > 0) {
+      setSelectedSource(flattendSources[0]);
+    }
+  }, [flattendSources, selectedSource]);
 
-  // Update showEmpty state when prop changes
   useEffect(() => {
     setShowEmpty(showEmptyProp === 'true');
     setDisplay('full');
     setIsVisible(false);
   }, [showEmptyProp]);
 
-  // Tooltip handling callbacks
   const showTooltip = useCallback((content: React.ReactNode, element: HTMLElement) => {
-    clearTimeout(showTooltipTimeout.current);
-    showTooltipTimeout.current = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       if (!virtualTriggerRef.current) return;
       const rect = element.getBoundingClientRect();
       virtualTriggerRef.current.style.left = `${rect.left + rect.width / 2}px`;
@@ -135,15 +115,11 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
       setTooltipContent(content);
       setTooltipOpen(true);
     }, 50);
+    return () => clearTimeout(timeoutId);
   }, []);
 
-  const hideTooltip = useCallback(() => {
-    clearTimeout(showTooltipTimeout.current);
-    setTooltipOpen(false);
-  }, []);
-  const showTooltipTimeout = useRef<NodeJS.Timeout>();
+  const hideTooltip = useCallback(() => setTooltipOpen(false), []);
 
-  // Hover handling callbacks
   const handleSetHover = useCallback((row: number, col: number) => setHover({ row, col }), []);
   const handleClearHover = useCallback(() => setHover({ row: null, col: null }), []);
 
@@ -171,17 +147,8 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     const isStale = isLoading && data && data.length > 0;
     const isInitialLoad = isLoading && (!data || data.length === 0);
 
-    if (isInitialLoad) {
-      return (
-        <div className={styles.placeholder}>
-          <div className={styles.spinner} />
-          Loading resistance data...
-        </div>
-      );
-    }
-    if (error) {
-      return <div className={styles.error}>Error: {error.message}</div>;
-    }
+    if (isInitialLoad) return <div className={styles.placeholder}><div className={styles.spinner} />Loading resistance data...</div>;
+    if (error) return <div className={styles.error}>Error: {error.message}</div>;
     if (!data || data.length === 0) {
       return (
         <div className={styles.noDataContainer}>
@@ -193,11 +160,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
 
     return (
       <>
-        {isStale && (
-          <div className={styles.tableOverlay}>
-            <div className={styles.spinner} />
-          </div>
-        )}
+        {isStale && <div className={styles.tableOverlay}><div className={styles.spinner} /></div>}
         <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <TableHeader {...{ cols, displayMode: display, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles }} />
           <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode }} />
@@ -214,9 +177,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     );
   };
 
-  if (!sources) {
-    return <div className={styles.error}>Error: Docusaurus plugin data not found.</div>;
-  }
+  if (!sources) return <div className={styles.error}>Error: Docusaurus plugin data not found.</div>;
 
   return (
     <RadixTooltip.Provider>

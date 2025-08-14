@@ -1,7 +1,7 @@
 import type { LoadContext, Plugin } from "@docusaurus/types";
 import { join } from "path";
 import { ensureDirSync, writeJsonSync, copySync } from "fs-extra";
-import { getSharedData, loadResistanceDataForSource, mkSynMap } from "./data";
+import { getSharedData, loadResistanceDataForSource } from "./data";
 
 interface Opts {
   dataDir?: string;
@@ -34,20 +34,20 @@ export default function docusaurusPluginResistogram(
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      // Use the new cached data loader
-      const { abx, org, sources, allAbxIds, allOrgIds } = await getSharedData(dataPath, files);
+      const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds } = await getSharedData(dataPath, files);
 
-      // 1. Process and write resistance data for each source
+      // 1. Process and write resistance data for each source, using the new hierarchical loader
       const resistanceDataFileNames = new Map<string, string>();
-      for (const source of sources) {
-        const resistanceData = await loadResistanceDataForSource(source, dataPath);
+      for (const source of sources) { // Iterate over the flat list to process all sources
+        const resistanceData = await loadResistanceDataForSource(source, sources, dataPath);
+        if (resistanceData.length === 0) continue; // Skip empty sources
+
         const headers = Object.keys(resistanceData[0] || {});
-        // Compress data into an array of arrays for smaller JSON size
         const compressedData = [
           headers,
           ...resistanceData.map((row: any) => headers.map((h) => row[h])),
         ];
-        const fileName = `resist-data-${source.source_file}.json`;
+        const fileName = `resist-data-${source.id}.json`; // Use source.id for a stable name
         writeJsonSync(join(pluginDataDir, fileName), compressedData);
         resistanceDataFileNames.set(source.id, fileName);
       }
@@ -65,7 +65,6 @@ export default function docusaurusPluginResistogram(
 
       const sharedDataFileName = "shared-resistogram-data.json";
       const sharedData = {
-        // We no longer need to send all synonyms to the client, only the necessary mappings
         id2MainSyn: Object.fromEntries(
           new Map([...abx, ...org].map((r: any) => [r.amr_code, r.full_name_de]))
         ),
@@ -73,13 +72,13 @@ export default function docusaurusPluginResistogram(
           new Map([...abx, ...org].map((r: any) => [r.amr_code, r.short_name_de]))
         ),
         classToAbx: Object.fromEntries(classToAbx),
-        allAbxIds, // Still needed for sorting/grouping on the client
+        allAbxIds,
       };
       writeJsonSync(join(pluginDataDir, sharedDataFileName), sharedData);
 
-      // 3. Set global data for the Docusaurus application
+      // 3. Set global data, now with hierarchical sources
       const globalData = {
-        sources,
+        sources: hierarchicalSources, // Pass the tree structure to the client
         resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
         sharedDataFileName,
       };

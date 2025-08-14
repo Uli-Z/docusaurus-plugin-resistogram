@@ -15,14 +15,22 @@ const CSV = (txt: string) =>
     bom: true,
     cast: (value, context) => {
       if (context.header) return value;
-      if (context.column === "resistance_pct") return parseFloat(value);
-      if (context.column === "n_isolates") return parseInt(value, 10);
+      if (
+        ["resistance_pct", "n_isolates"].includes(context.column as string)
+      ) {
+        const num = parseFloat(value);
+        return isNaN(num) ? null : num;
+      }
       return value;
     },
   });
 
 const loadCsv = (dir: string, file: string) =>
-  readFile(join(dir, file), "utf8").then(CSV);
+  readFile(join(dir, file), "utf8").then(CSV).catch(err => {
+    console.error(`Error loading CSV file: ${file} in ${dir}`, err);
+    return [];
+  });
+
 
 let sharedDataPromise: Promise<any> | null = null;
 
@@ -30,7 +38,7 @@ export function getSharedData(
   dir: string,
   files: {
     antibiotics: string;
-    organisms: string;
+    organisms:string;
     sources: string;
   }
 ) {
@@ -45,32 +53,74 @@ export function getSharedData(
       const allAbxIds = abx.filter((r: any) => r.class).map((r: any) => r.amr_code);
       const allOrgIds = org.filter((r: any) => r.class_id).map((r: any) => r.amr_code);
 
-      return { abx, org, sources, abxSyn2Id, orgSyn2Id, allAbxIds, allOrgIds };
+      const sourcesById: Map<string, Source & { children: Source[] }> = new Map(sources.map((s: Source) => [s.id, { ...s, children: [] as Source[] }]));
+      const hierarchicalSources: Source[] = [];
+      for (const source of sourcesById.values()) {
+        if (source.parent_id && sourcesById.has(source.parent_id)) {
+          const parent = sourcesById.get(source.parent_id)!;
+          parent.children.push(source);
+        } else {
+          hierarchicalSources.push(source);
+        }
+      }
+
+      return { abx, org, sources, hierarchicalSources, abxSyn2Id, orgSyn2Id, allAbxIds, allOrgIds };
     });
   }
   return sharedDataPromise;
 }
 
-export const loadResistanceDataForSource = (source: Source, dataDir: string) => {
-  const csvPath = join(dataDir, source.source_file);
-  return readFile(csvPath, "utf8").then(CSV);
+// --- Hierarchical Data Loading ---
+
+export const getPathToSource = (sources: Source[], targetId: string): Source[] => {
+  const sourcesById = new Map(sources.map(s => [s.id, s]));
+  const path: Source[] = [];
+  let currentId: string | undefined = targetId;
+  while (currentId && sourcesById.has(currentId)) {
+    const source: Source = sourcesById.get(currentId)!;
+    path.unshift(source);
+    currentId = source.parent_id;
+  }
+  return path;
 };
 
+export const loadResistanceDataForSource = async (
+  source: Source,
+  allSources: Source[],
+  dataDir: string
+): Promise<any[]> => {
+  const path = getPathToSource(allSources, source.id);
+  if (path.length === 0) return [];
+
+  const allDataFrames = await Promise.all(
+    path.map(s => loadCsv(dataDir, s.source_file))
+  );
+
+  const mergedData = new Map<string, any>();
+  for (const df of allDataFrames) {
+    for (const row of df) {
+      const key = `${row.antibiotic_id}-${row.organism_id}`;
+      mergedData.set(key, row);
+    }
+  }
+
+  return Array.from(mergedData.values());
+};
+
+
 // ============================================================================ 
-// Data Processing / ID Resolution (Final Corrected Version)
+// Data Processing / ID Resolution
 // ============================================================================ 
 
-// Robustes Pattern ohne Lookbehind / \p{…}
 const makeTokenRegex = (synRaw: string) => {
   const syn = synRaw?.trim();
   if (!syn) return null;
 
-  const esc = (s: string) => s.replace(/[.*+?^${}()|[\\]/g, "\\$&");
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\\]/g, "\\$& ");
   const parts = syn.split(/\s+/).map(esc);
-  const core = parts.join("\\s+").replace(/\\\./g, "\\.?"); // "E\.? coli"
+  const core = parts.join("\\s+").replace(/\\.\?/g, "\\.?");
 
-  // "Wortzeichen": Latein + Akzent + Ziffern (+ optional Griechisch)
-  const W = "A-Za-z0-9\\u00C0-\u024F\u0370-\u03FF";
+  const W = "A-Za-z0-9\\u00C0-\\u024F\\u0370-\\u03FF";
   const pattern = `(?:^|[^${W}])(${core})(?=$|[^${W}])`;
 
   return new RegExp(pattern, "i");
@@ -83,7 +133,6 @@ export const mkSynMap = (rows: any[]) =>
       const t = s.trim();
       if (!t) return;
       m.set(t, r.amr_code);
-      // Variante ohne Punkte (z. B. "E coli") zusätzlich erlauben
       const noDots = t.replace(/\./g, "");
       if (noDots !== t) m.set(noDots, r.amr_code);
     };
@@ -94,7 +143,6 @@ export const mkSynMap = (rows: any[]) =>
     return m;
   }, new Map());
 
-// Case-insensitive Map für manuellen Pfad (Caching)
 const getLowerCaseSynMap = (() => {
   let cache: Map<string, string> | null = null;
   let originalMap: Map<string, string> | null = null;
@@ -113,17 +161,14 @@ const getLowerCaseSynMap = (() => {
   };
 })();
 
-// Auto-/Manuelle Auflösung
 export const resolveIds = (
   param: string | undefined,
   allIds: string[],
   synMap: Map<string, string>,
   pageText: string,
 ): string[] => {
-  // Auto-Modus
   if (param === "auto") {
     const detected = new Set<string>();
-    // Der pageText wird vom Remark-Plugin bereits mit mdastToPlainText bereinigt.
     for (const [syn, id] of synMap.entries()) {
       const rx = makeTokenRegex(syn);
       if (rx && rx.test(pageText)) {
@@ -133,10 +178,8 @@ export const resolveIds = (
     return [...detected];
   }
 
-  // "all" oder leer: alles zurückgeben
   if (!param || param === "all") return allIds;
 
-  // Manueller Pfad: kommagetrennte Liste (IDs oder Synonyme)
   const lowerCaseSynMap = getLowerCaseSynMap(synMap);
   const requested = param.split(",").map((t) => t.trim().toLowerCase());
 
