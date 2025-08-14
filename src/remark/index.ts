@@ -114,12 +114,6 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
         children: [],
       };
 
-      console.log(`[Resistogram Plugin] In ${file.history[0]}:`);
-      console.log(`  - Found %%RESIST%% block with params:`, params);
-      console.log(`  - Resolved organismIds:`, organismIds);
-      console.log(`  - Resolved antibioticIds:`, antibioticIds);
-      console.log(`  - Passing props to ResistanceTable component.`);
-
       // Replace the original paragraph node with the new component node
       parent.children.splice(index, 1, mdxNode);
     }
