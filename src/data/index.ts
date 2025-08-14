@@ -34,6 +34,10 @@ const loadCsv = (dir: string, file: string) =>
 
 let sharedDataPromise: Promise<any> | null = null;
 
+/**
+ * Loads the shared data (antibiotics, organisms, sources) and caches the promise.
+ * This ensures the data is only read from the file system once during the build process.
+ */
 export function getSharedData(
   dir: string,
   files: {
@@ -112,18 +116,36 @@ export const loadResistanceDataForSource = async (
 // Data Processing / ID Resolution
 // ============================================================================ 
 
+// util: minimal Markdown-Noise rauswerfen (ohne teuren Parser)
+const stripMarkdownLight = (s: string) =>
+  s
+    .replace(/`{1,3}[\s\S]*?`{1,3}/g, " ")        // Inline/Block code
+    .replace(/![[^\]]*\]\([^)]*\)/g, " ")        // Images
+    .replace(/[[^\]]+]\[\([^)]*\)/g, "$1")      // Links -> Linktext
+    .replace(/[*_~#>/]+/g, " ")                   // Emphasis/Headings/Blockquotes
+    .replace(/\s+/g, " ")                         // Whitespace normalisieren
+    .trim();
+
+// util: sichere Regex-Escapes
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\\]/g, "\\$& ");
+
+// util: baue ein robustes Pattern für einen Synonym-String
 const makeTokenRegex = (synRaw: string) => {
-  const syn = synRaw?.trim();
+  const syn = synRaw.trim();
   if (!syn) return null;
 
-  const esc = (s: string) => s.replace(/[.*+?^${}()|[\\]/g, "\\$& ");
-  const parts = syn.split(/\s+/).map(esc);
-  const core = parts.join("\\s+").replace(/\\.\?/g, "\\.?");
+  let core = esc(syn)
+    .replace(/\\[.]/g, "\\.?")     // "." optional
+    .replace(/\\[\\s]+/g, "\\s+");   // beliebiger Whitespace
 
-  const W = "A-Za-z0-9\\u00C0-\\u024F\\u0370-\\u03FF";
-  const pattern = `(?:^|[^${W}])(${core})(?=$|[^${W}])`;
+  const W = "\\p{L}\\p{N}";
 
-  return new RegExp(pattern, "i");
+  const pattern = `(?<![${W}])${core}(?![${W}])`;
+  try {
+    return new RegExp(pattern, "iu");
+  } catch {
+    return new RegExp(`(^|[^${W}])(${core})(?=$|[^${W}])`, "iu");
+  }
 };
 
 export const mkSynMap = (rows: any[]) =>
@@ -143,6 +165,7 @@ export const mkSynMap = (rows: any[]) =>
     return m;
   }, new Map());
 
+// Create a cached, case-insensitive version of the synonym map for manual lookups.
 const getLowerCaseSynMap = (() => {
   let cache: Map<string, string> | null = null;
   let originalMap: Map<string, string> | null = null;
@@ -161,6 +184,7 @@ const getLowerCaseSynMap = (() => {
   };
 })();
 
+// pageText wird leicht bereinigt, dann robustes Matching je Synonym
 export const resolveIds = (
   param: string | undefined,
   allIds: string[],
@@ -169,10 +193,19 @@ export const resolveIds = (
 ): string[] => {
   if (param === "auto") {
     const detected = new Set<string>();
+    const text = stripMarkdownLight(pageText);
+
     for (const [syn, id] of synMap.entries()) {
       const rx = makeTokenRegex(syn);
-      if (rx && rx.test(pageText)) {
-        detected.add(id);
+      if (!rx) continue;
+
+      if (rx.test(text)) detected.add(id);
+      else {
+        const synNoDots = syn.replace(/\./g, "");
+        if (synNoDots !== syn) {
+          const rx2 = makeTokenRegex(synNoDots);
+          if (rx2 && rx2.test(text)) detected.add(id);
+        }
       }
     }
     return [...detected];
@@ -180,8 +213,9 @@ export const resolveIds = (
 
   if (!param || param === "all") return allIds;
 
+  // Manual path, using a cached lowercase map for performance.
   const lowerCaseSynMap = getLowerCaseSynMap(synMap);
-  const requested = param.split(",").map((t) => t.trim().toLowerCase());
+  const requested = param.split(',').map((t) => t.trim().toLowerCase());
 
   return Array.from(
     new Set(

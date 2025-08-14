@@ -74,6 +74,7 @@ export function useResistanceTableData(
 
   useEffect(() => {
     async function loadShared() {
+      console.log('[useResistanceTableData] Loading shared data...');
       if (!sharedDataUrl) {
         setError(new Error("Plugin data not found."));
         setIsLoading(false);
@@ -82,9 +83,10 @@ export function useResistanceTableData(
       try {
         const data = await fetchJson(sharedDataUrl);
         setSharedData(data);
+        console.log('[useResistanceTableData] Shared data loaded.');
       } catch (e) {
         setError(e);
-        setIsLoading(false);
+        setIsLoading(false); // Set loading to false on error
       }
     }
     loadShared();
@@ -92,20 +94,25 @@ export function useResistanceTableData(
 
   useEffect(() => {
     async function loadResistance() {
-      if (!sharedData) return;
+      if (!sharedData) return; // Wait for shared data to be loaded first
+      console.log('[useResistanceTableData] Loading resistance data for source:', selectedSource?.id);
+
       if (!resistanceDataUrl || !selectedSource) {
         setResistanceData(null);
         setIsLoading(false);
+        console.log('[useResistanceTableData] No source selected or no data URL. Loading finished.');
         return;
       }
       try {
-        setIsLoading(true);
+        setIsLoading(true); // Set loading to true before fetching this specific source
         const data = await fetchResistanceData(resistanceDataUrl);
         setResistanceData(data);
+        console.log('[useResistanceTableData] Resistance data loaded.');
       } catch (e) {
         setError(e);
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // This is the final loading step
+        console.log('[useResistanceTableData] Final loading state set to false.');
       }
     }
     loadResistance();
