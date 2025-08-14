@@ -8,6 +8,22 @@ import {
 } from '../utils';
 import { Source } from '../../../types';
 
+// Helper to recursively flatten the hierarchical sources for easy lookup
+const flattenSources = (sources: (Source & { children?: Source[] })[]): Source[] => {
+  const allSources: Source[] = [];
+  const recurse = (sourceList: (Source & { children?: Source[] })[]) => {
+    for (const source of sourceList) {
+      allSources.push(source);
+      if (source.children) {
+        recurse(source.children);
+      }
+    }
+  };
+  recurse(sources);
+  return allSources;
+};
+
+
 function decompressData(data: any[][]): any[] {
   if (!data || data.length < 2) {
     return [];
@@ -58,20 +74,17 @@ export function useResistanceTableData(
 
   useEffect(() => {
     async function loadShared() {
-      console.log('[useResistanceTableData] Loading shared data...');
       if (!sharedDataUrl) {
         setError(new Error("Plugin data not found."));
         setIsLoading(false);
         return;
       }
       try {
-        // Don't set loading to true here, it's set initially
         const data = await fetchJson(sharedDataUrl);
         setSharedData(data);
-        console.log('[useResistanceTableData] Shared data loaded.');
       } catch (e) {
         setError(e);
-        setIsLoading(false); // Set loading to false on error
+        setIsLoading(false);
       }
     }
     loadShared();
@@ -79,26 +92,20 @@ export function useResistanceTableData(
 
   useEffect(() => {
     async function loadResistance() {
-      if (!sharedData) return; // Wait for shared data to be loaded first
-      console.log('[useResistanceTableData] Loading resistance data for source:', selectedSource?.id);
-
+      if (!sharedData) return;
       if (!resistanceDataUrl || !selectedSource) {
         setResistanceData(null);
         setIsLoading(false);
-        console.log('[useResistanceTableData] No source selected or no data URL. Loading finished.');
         return;
       }
-
       try {
-        setIsLoading(true); // Set loading to true before fetching this specific source
+        setIsLoading(true);
         const data = await fetchResistanceData(resistanceDataUrl);
         setResistanceData(data);
-        console.log('[useResistanceTableData] Resistance data loaded.');
       } catch (e) {
         setError(e);
       } finally {
-        setIsLoading(false); // This is the final loading step
-        console.log('[useResistanceTableData] Final loading state set to false.');
+        setIsLoading(false);
       }
     }
     loadResistance();
@@ -161,6 +168,9 @@ export function useResistanceTableData(
     [matrix, finalRowIds, finalColIds, id2Main, id2Short],
   );
 
+  const hierarchicalSources = pluginData?.sources ?? [];
+  const flattendSources = useMemo(() => flattenSources(hierarchicalSources), [hierarchicalSources]);
+
   return {
     isLoading,
     error,
@@ -169,6 +179,7 @@ export function useResistanceTableData(
     rowsAreAbx,
     emptyRowIds: Array.from(emptyRowIds),
     emptyColIds: Array.from(emptyColIds),
-    sources: pluginData?.sources ?? [],
+    sources: hierarchicalSources,
+    flattendSources,
   };
 }

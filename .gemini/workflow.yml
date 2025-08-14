@@ -1,0 +1,10 @@
+# Standard TDD Workflow
+
+- 1_setup: If project files (.gemini/*) don't exist, create them.
+- 2_discover: Re-read problem.yml and confirm understanding with the user.
+- 3_test: Write the next failing test based on the test_matrix in problem.yml.
+- 4_implement: Write the minimal code required to make the failing test pass.
+- 5_refactor: Refactor the code for clarity and maintainability without changing functionality.
+- 6_review: Run all tests, evaluate quality criteria, and update state/log files.
+- 7_repeat: Go to step 3 until all tests pass and quality criteria are met.
+- 8_finalize: Propose a final commit message.

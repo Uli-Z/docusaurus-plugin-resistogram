@@ -1,8 +1,42 @@
 import React from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
+import { Source } from '../../../types';
 
-// Note: The 'styles' object is now passed as a prop to break the dependency cycle.
+// Recursive component to render the source tree
+const SourceMenuItem = ({
+  source,
+  onSelect,
+  styles,
+  level = 0,
+}: {
+  source: Source & { children?: Source[] };
+  onSelect: (s: Source) => void;
+  styles: any;
+  level?: number;
+}) => (
+  <>
+    <DropdownMenu.Item
+      key={source.id}
+      className={styles.sourceSwitcherItem}
+      style={{ paddingLeft: `${1 + level * 1.5}rem` }}
+      onSelect={() => onSelect(source)}
+    >
+      {source.name_de}
+    </DropdownMenu.Item>
+    {source.children && source.children.length > 0 && (
+      source.children.map(child => (
+        <SourceMenuItem
+          key={child.id}
+          source={child}
+          onSelect={onSelect}
+          styles={styles}
+          level={level + 1}
+        />
+      ))
+    )}
+  </>
+);
 
 export const SourceSwitcher = ({
   sources,
@@ -10,12 +44,14 @@ export const SourceSwitcher = ({
   onSelect,
   styles,
 }: {
-  sources: any[];
-  selected: any;
-  onSelect: (s: any) => void;
+  sources: (Source & { children?: Source[] })[];
+  selected: Source | null;
+  onSelect: (s: Source) => void;
   styles: any;
-}) =>
-  sources.length <= 1 ? null : (
+}) => {
+  if (!sources || sources.length === 0) return null;
+
+  return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button className={styles.sourceSwitcherTrigger}>
@@ -28,18 +64,13 @@ export const SourceSwitcher = ({
       <DropdownMenu.Portal>
         <DropdownMenu.Content className={styles.sourceSwitcherContent} sideOffset={5}>
           {sources.map((s) => (
-            <DropdownMenu.Item
-              key={s.id}
-              className={styles.sourceSwitcherItem}
-              onSelect={() => onSelect(s)}
-            >
-              {s.name_de}
-            </DropdownMenu.Item>
+            <SourceMenuItem key={s.id} source={s} onSelect={onSelect} styles={styles} />
           ))}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
   );
+};
 
 export const CellTooltipContent = ({
   row,
