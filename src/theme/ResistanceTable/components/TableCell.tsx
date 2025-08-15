@@ -21,6 +21,7 @@ interface TableCellProps {
   onHideTooltip: () => void;
   styles: any;
   colorMode: 'dark' | 'light';
+  sourceId2ShortName: Map<string, string>;
 }
 
 export const TableCell = React.memo(
@@ -38,6 +39,7 @@ export const TableCell = React.memo(
     onHideTooltip,
     styles,
     colorMode,
+    sourceId2ShortName,
   }: TableCellProps) => {
     const cell = row[col.name] as FormattedCell;
     const highlight = hoveredRow === rowIndex || hoveredCol === colIndex;
@@ -55,6 +57,7 @@ export const TableCell = React.memo(
           col={col}
           cell={cell}
           rowsAreAbx={rowsAreAbx}
+          sourceName={cell?.source_id ? sourceId2ShortName.get(cell.source_id) : undefined}
         />
       );
       onShowTooltip(content, event.currentTarget);

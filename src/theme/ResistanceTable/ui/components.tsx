@@ -77,11 +77,13 @@ export const CellTooltipContent = ({
   col,
   cell,
   rowsAreAbx,
+  sourceName,
 }: {
   row: any;
   col: any;
   cell: any;
   rowsAreAbx: boolean;
+  sourceName?: string;
 }) => {
   const rowLabel = rowsAreAbx ? 'Antibiotic' : 'Organism';
   const colLabel = rowsAreAbx ? 'Organism' : 'Antibiotic';
@@ -91,7 +93,10 @@ export const CellTooltipContent = ({
       <div><strong>{colLabel}:</strong> {col.name}</div>
       <div style={{ marginTop: 4 }}>
         {cell ? (
-          <span><strong>Resistance:</strong> {cell.text}</span>
+          <>
+            <span><strong>Resistance:</strong> {cell.text}</span>
+            {sourceName && <div style={{fontSize: '0.8em', opacity: 0.8}}>Source: {sourceName}</div>}
+          </>
         ) : (
           <span>Keine Daten vorliegen</span>
         )}

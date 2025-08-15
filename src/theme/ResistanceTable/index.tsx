@@ -213,6 +213,14 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const hierarchicalSources = pluginData?.sources ?? [];
   const flattendSources = useMemo(() => flattenSources(hierarchicalSources), [hierarchicalSources]);
 
+  const sourceId2ShortName = useMemo(() => {
+    const map = new Map<string, string>();
+    flattendSources.forEach(s => {
+      map.set(s.id, s.source_short_name_de || s.name_de);
+    });
+    return map;
+  }, [flattendSources]);
+
   const sourceChain = useMemo(() => {
     if (!selectedSource || flattendSources.length === 0) {
       return [];
@@ -330,7 +338,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
         {isStale && <div className={styles.tableOverlay}><div className={styles.spinner} /></div>}
         <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <TableHeader {...{ cols, displayMode: display, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles }} />
-          <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode }} />
+          <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode, sourceId2ShortName }} />
         </table>
         <Legend {...{ cols, displayMode: display, styles }} />
         <div className={styles.sourceInfo}>
