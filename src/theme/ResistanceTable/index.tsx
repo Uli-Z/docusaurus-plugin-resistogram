@@ -1,4 +1,5 @@
 import { useColorMode } from '@docusaurus/theme-common';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import React, {
   useEffect,
   useLayoutEffect,
@@ -8,11 +9,12 @@ import React, {
   useMemo,
 } from 'react';
 import * as RadixTooltip from '@radix-ui/react-tooltip';
-import { useResistanceTableData } from './hooks/useResistanceTableData';
 import { SourceSwitcher } from './ui/components';
 import { TableHeader, TableBody, Legend } from './components';
 import styles from './styles.module.css';
 import { Source } from '../../../types';
+import { groupAndSortAntibiotics, buildMatrix, formatMatrix } from './utils';
+
 
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
@@ -24,20 +26,69 @@ const VirtualTrigger = React.forwardRef<HTMLSpanElement, {}>(function VirtualTri
 interface ResistanceTableProps {
   antibioticIds: string[];
   organismIds: string[];
+  dataSourceId?: string;
   layout?: 'auto' | 'antibiotics-rows' | 'organisms-rows';
   showEmpty?: 'true' | 'false';
 }
 
-export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds'> & { antibioticIds: string, organismIds: string }) {
+// Helper to flatten the hierarchical source structure
+const flattenSources = (sources: Source[]): Source[] => {
+  const allSources: Source[] = [];
+  const recurse = (sourceArray: Source[]) => {
+    for (const source of sourceArray) {
+      allSources.push(source);
+      if (source.children) {
+        recurse(source.children);
+      }
+    }
+  };
+  recurse(sources);
+  return allSources;
+};
+
+function decompressData(data: any[][]): any[] {
+  if (!data || data.length < 2) {
+    return [];
+  }
+  const [headers, ...rows] = data;
+  return rows.map((row) => {
+    const obj: { [key: string]: any } = {};
+    headers.forEach((header, i) => {
+      obj[header] = row[i];
+    });
+    return obj;
+  });
+}
+
+async function fetchJson(path: string) {
+  const response = await fetch(path);
+  if (!response.ok) {
+    throw new Error(`Network response was not ok: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+async function fetchResistanceData(path: string) {
+  const compressedData = await fetchJson(path);
+  return decompressData(compressedData);
+}
+
+
+export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds'> & { antibioticIds: string, organismIds: string, dataSourceId?: string }) {
   const {
     antibioticIds: antibioticIdsJson,
     organismIds: organismIdsJson,
+    dataSourceId,
     layout = 'auto',
     showEmpty: showEmptyProp = 'false',
   } = props;
 
   const antibioticIds = useMemo(() => JSON.parse(antibioticIdsJson), [antibioticIdsJson]);
   const organismIds = useMemo(() => JSON.parse(organismIdsJson), [organismIdsJson]);
+
+  const { siteConfig, globalData } = useDocusaurusContext();
+  const { baseUrl } = siteConfig;
+  const pluginData = globalData['docusaurus-plugin-resistogram']['example-resistogram'];
 
   const { colorMode } = useColorMode();
 
@@ -54,17 +105,113 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const containerRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
 
+  const [sharedData, setSharedData] = useState<any | null>(null);
+  const [resistanceData, setResistanceData] = useState<any[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
+
+  const sharedDataUrl = pluginData.sharedDataFileName ? `${baseUrl}assets/json/${pluginData.sharedDataFileName}` : null;
+  const resistanceFileName = selectedSource ? pluginData.resistanceDataFileNames?.[selectedSource.id] : null;
+  const resistanceDataUrl = resistanceFileName ? `${baseUrl}assets/json/${resistanceFileName}` : null;
+
+  useEffect(() => {
+    async function loadShared() {
+      if (!sharedDataUrl) {
+        setError(new Error("Plugin data not found."));
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const data = await fetchJson(sharedDataUrl);
+        setSharedData(data);
+      } catch (e) {
+        setError(e);
+        setIsLoading(false);
+      }
+    }
+    loadShared();
+  }, [sharedDataUrl]);
+
+  useEffect(() => {
+    async function loadResistance() {
+      if (!sharedData) return;
+      if (!resistanceDataUrl || !selectedSource) {
+        setResistanceData(null);
+        setIsLoading(false);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        const data = await fetchResistanceData(resistanceDataUrl);
+        setResistanceData(data);
+      } catch (e) {
+        setError(e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadResistance();
+  }, [resistanceDataUrl, selectedSource, sharedData]);
+
   const {
-    isLoading,
-    error,
-    data,
-    cols,
-    rowsAreAbx,
-    emptyRowIds,
-    emptyColIds,
-    sources,
-    flattendSources,
-  } = useResistanceTableData(antibioticIds, organismIds, layout, selectedSource, showEmpty);
+    id2MainSyn: id2Main,
+    id2ShortName: id2Short,
+    allAbxIds,
+    classToAbx: classToAbxObj,
+  } = sharedData || {};
+
+  const classToAbx = useMemo(
+    () => new Map<string, string[]>(Object.entries(classToAbxObj ?? {})),
+    [classToAbxObj],
+  );
+
+  const sortedAbxIds = useMemo(
+    () => groupAndSortAntibiotics(antibioticIds, allAbxIds ?? [], classToAbx),
+    [antibioticIds, allAbxIds, classToAbx],
+  );
+
+  const { rowIds, colIds, rowsAreAbx } = useMemo(() => {
+    let rIds: string[] = sortedAbxIds;
+    let cIds: string[] = organismIds;
+    let rAreAbx = true;
+
+    if (layout === 'organisms-rows') {
+      rIds = organismIds;
+      cIds = sortedAbxIds;
+      rAreAbx = false;
+    } else if (layout === 'auto') {
+      if (organismIds.length > 4 && antibioticIds.length && organismIds.length / antibioticIds.length > 2) {
+        rIds = organismIds;
+        cIds = sortedAbxIds;
+        rAreAbx = false;
+      }
+    }
+    return { rowIds: rIds, colIds: cIds, rowsAreAbx: rAreAbx };
+  }, [layout, sortedAbxIds, organismIds]);
+
+  const matrix = useMemo(
+    () => buildMatrix(rowIds, colIds, rowsAreAbx, resistanceData ?? []),
+    [rowIds, colIds, rowsAreAbx, resistanceData],
+  );
+
+  const { emptyRowIds, emptyColIds } = useMemo(() => {
+    const emptyRows = new Set(rowIds.filter((id) => (matrix.get(id)?.size ?? 0) === 0));
+    const nonEmptyCols = new Set<string>();
+    matrix.forEach((colMap) => colMap.forEach((_v, cId) => nonEmptyCols.add(cId)));
+    const emptyCols = new Set(colIds.filter((id) => !nonEmptyCols.has(id)));
+    return { emptyRowIds: emptyRows, emptyColIds: emptyCols };
+  }, [matrix, rowIds, colIds]);
+
+  const finalRowIds = useMemo(() => showEmpty ? rowIds : rowIds.filter((id) => !emptyRowIds.has(id)), [showEmpty, rowIds, emptyRowIds]);
+  const finalColIds = useMemo(() => showEmpty ? colIds : colIds.filter((id) => !emptyColIds.has(id)), [showEmpty, colIds, emptyColIds]);
+
+  const { data, cols } = useMemo(
+    () => formatMatrix(matrix, finalRowIds, finalColIds, new Map(Object.entries(id2Main ?? {})), new Map(Object.entries(id2Short ?? {}))),
+    [matrix, finalRowIds, finalColIds, id2Main, id2Short],
+  );
+  
+  const hierarchicalSources = pluginData?.sources ?? [];
+  const flattendSources = useMemo(() => flattenSources(hierarchicalSources), [hierarchicalSources]);
 
   useIsomorphicLayoutEffect(() => {
     if (isLoading || error || !containerRef.current || !tableRef.current) return;
@@ -95,10 +242,13 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   }, []);
 
   useEffect(() => {
-    if (!selectedSource && flattendSources.length > 0) {
-      setSelectedSource(flattendSources[0]);
+    if (flattendSources.length > 0) {
+      const initialSource = dataSourceId
+        ? flattendSources.find(s => s.id === dataSourceId)
+        : flattendSources[0];
+      setSelectedSource(initialSource || flattendSources[0]);
     }
-  }, [flattendSources, selectedSource]);
+  }, [flattendSources, dataSourceId]);
 
   useEffect(() => {
     setShowEmpty(showEmptyProp === 'true');
@@ -124,8 +274,8 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const handleClearHover = useCallback(() => setHover({ row: null, col: null }), []);
 
   const renderHiddenInfo = () => {
-    const hiddenRowCount = emptyRowIds.length;
-    const hiddenColCount = emptyColIds.length;
+    const hiddenRowCount = emptyRowIds.size;
+    const hiddenColCount = emptyColIds.size;
     if (!hiddenRowCount && !hiddenColCount) return null;
     const rowLabel = rowsAreAbx ? 'antibiotic' : 'organism';
     const colLabel = rowsAreAbx ? 'organism' : 'antibiotic';
@@ -177,14 +327,14 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     );
   };
 
-  if (!sources) return <div className={styles.error}>Error: Docusaurus plugin data not found.</div>;
+  if (!pluginData) return <div className={styles.error}>Error: Docusaurus plugin data not found.</div>;
 
   return (
     <RadixTooltip.Provider>
       <div ref={containerRef} style={{ visibility: isVisible ? 'visible' : 'hidden', minHeight: '150px' }}>
         <div className={styles.rootContainer}>
-          {sources.length > 0 && (
-            <SourceSwitcher {...{ sources, selected: selectedSource, onSelect: setSelectedSource, styles }} />
+          {hierarchicalSources.length > 0 && (
+            <SourceSwitcher {...{ sources: hierarchicalSources, selected: selectedSource, onSelect: setSelectedSource, styles }} />
           )}
           <div className={styles.tableContainer}>
             {renderContent()}

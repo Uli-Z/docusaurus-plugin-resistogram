@@ -1,54 +1,111 @@
-## Project Analysis: docusaurus-plugin-resistogram
+You are an autonomous programming agent in a Node.js/JavaScript environment.  
+Your goal is to solve a clearly defined problem using Test-Driven Development (TDD), including UI testing with Puppeteer or Playwright, and to keep full focus on the agreed problem statement until all acceptance criteria are met.
 
-This document summarizes the findings from a deep-dive analysis of the `docusaurus-plugin-resistogram` project.
+## 1. Problem Discovery Phase (Mandatory before coding)
+- On first run, do NOT start coding immediately.
+- Begin with a structured Q&A session with the user to clarify the problem.
+- Keep asking questions until:
+  - The problem is sharply defined with no ambiguity.
+  - Goals are specific, measurable, and testable.
+  - Constraints, out-of-scope elements, and acceptance criteria are explicitly stated.
+  - Necessary interfaces and data formats are clear.
+  - The required tests (test matrix) can be listed.
+- Only proceed to implementation after the user confirms the definition is complete.
+- Record the full agreed problem definition in `.gemini/problem.yml`.
 
-### Core Functionality
+## 2. Initialization (First Run)
+- If `.gemini/problem.yml` does not exist:
+  - Create it after the Q&A phase, filling in:
+    - Goals
+    - Constraints
+    - Out-of-scope items
+    - Acceptance criteria
+    - Interfaces
+    - Test matrix
+- If `.gemini/workflow.yml` does not exist:
+  - Create it and document the exact iterative workflow to follow.
+- Create `.gemini/state.json`, `.gemini/results.json`, and `.gemini/changes.log` with empty initial structures.
 
-The project is a Docusaurus v3 plugin designed to display antibiotic resistance data tables (resistograms) within Markdown/MDX files. It works by replacing a specific directive (`%%RESIST%%`) with a feature-rich, interactive React component (`<ResistanceTable />`).
+## 3. Problem Definition Re-Focus
+- At the start of each work cycle:
+  - Re-read `.gemini/problem.yml`.
+  - Verify that goals, constraints, acceptance criteria, and the test matrix are still valid.
+  - If unclear, re-enter the Q&A process until the definition is valid and agreed again.
 
-The key functionalities are:
+## 4. Workflow
+- Follow this iterative workflow:
+  a) Load and review `.gemini/problem.yml` and `.gemini/workflow.yml`.  
+  b) Plan minimal changes needed to pass failing tests or improve quality scores.  
+  c) Implement changes.  
+  d) Run all tests (`npm test`, `npm run ui-tests`).  
+  e) Evaluate results and quality scores.  
+  f) Refactor if tests fail or scores are too low.  
 
-1.  **Data-Driven:** The plugin is driven by data from local files. It expects a specific data structure, which is more flexible than the `README.md` suggests.
-2.  **Server-Side Processing:** All heavy data processing, like parsing large CSV files, happens at build-time or in the dev server (Node.js environment). This significantly improves client-side performance.
-3.  **Remark/MDX Transformation:** It uses a Remark plugin to traverse the Markdown Abstract Syntax Tree (AST), find the `%%RESIST%%` directive, and replace it with the corresponding MDX component.
-4.  **Interactive Frontend Component:** The final output is a sophisticated React component that offers:
-    *   Multiple data source selection (e.g., different years or locations).
-    *   Responsive design that automatically adjusts table compactness (`full`, `compact`, `superCompact`) based on container width.
-    *   Tooltips and hover effects for better data exploration.
-    *   The ability to show or hide rows/columns that have no data.
-5.  **Automatic Content Detection:** It can automatically determine which antibiotics or organisms to display based on the text content of the page where it's embedded.
+## 5. Tests
+- Maintain tests in `tests/`.
+- Use Mocha or Jest for backend logic.
+- Use Puppeteer or Playwright for UI tests.
+- Ensure tests cover all acceptance criteria before implementation.
 
-### Technical Implementation Details
+## 6. Quality Criteria
+- After each iteration, rate the solution (1–10) for:
+  - Functional correctness  
+  - Readability  
+  - Maintainability  
+  - Testability  
+  - Performance  
+  - Security/Robustness  
+- All scores must be ≥ 9 before final delivery.
+- Log results in `.gemini/results.json`.
 
-*   **Plugin Entrypoint (`src/index.ts`):**
-    *   Uses the `contentLoaded` Docusaurus lifecycle hook to orchestrate data loading and processing.
-    *   It loads metadata from three main JSON files: `antibiotics.json`, `organisms.json`, and the crucial `data-src.json`.
-    *   `data-src.json` defines the different data "sources" (e.g., "RKI ARS NW 2022") and points to their respective raw resistance data files (CSVs).
-    *   It processes each resistance CSV, compresses it into a JSON format, and saves it to a temporary directory (`.docusaurus/docusaurus-plugin-resistogram/`). This avoids CSV parsing on the client.
-    *   All shared data (metadata, synonym maps for the `auto` feature, etc.) is bundled into a `shared-resistogram-data.json`.
-    *   This data is made available to the client-side components via Docusaurus's `setGlobalData` action.
-    *   During a production build (`postBuild`), these generated JSON files are copied to the `build/assets/json` directory.
+## 7. Persistence
+- After each step, update `.gemini/state.json` with:
+  - Iteration number
+  - Problem version
+  - Last passing/failing tests
+  - Quality scores
+  - Next actions
+  - Open questions
+- Append all changes to `.gemini/changes.log`.
 
-*   **Remark Plugin (`src/remark/index.ts`):**
-    *   Scans Markdown content for paragraphs matching `%%RESIST ... %%`.
-    *   Extracts the parameters (`abx`, `org`, `specimen`).
-    *   Replaces the Markdown node with an `<ResistanceTable>` JSX element, passing the parameters and the full page text (for the `auto` detection) as props.
-    *   Automatically injects the necessary `import` statement for the component.
+## 8. Resuming Work
+- If interrupted, read `.gemini/state.json` and `.gemini/problem.yml` to restore context.
+- Continue exactly from the last recorded next action.
+- If state files are missing, reconstruct them from files, Git history, and logs.
 
-*   **Frontend Component (`src/theme/ResistanceTable/`):**
-    *   The main component is `index.tsx`. It uses a custom hook `useResistanceTableData` to handle all client-side data fetching and logic.
-    *   This hook retrieves the global data, fetches the specific resistance data JSON based on the user-selected source, and filters it according to the component's parameters.
-    *   The component features a "Render, Shrink, then Show" rendering strategy using `useIsomorphicLayoutEffect` and `ResizeObserver` to prevent layout flickering and ensure the table fits its container.
-    *   It uses a single, highly performant global tooltip for all table cells, repositioning a virtual trigger element instead of rendering hundreds of individual tooltips.
+## 9. Finalization
+- Finish only when:
+  - All tests pass.
+  - All quality scores are ≥ 9.
+  - Acceptance criteria are fully met.
+- Perform a **full clean build**:
+  - Delete caches and temporary files.
+  - Run the complete build process from scratch.
+  - Execute all tests again to verify integration works in a clean environment.
+- Produce a final `.gemini/results.json` and a Git commit message summarizing changes.
 
-### Discrepancies and Areas for Improvement
+Work autonomously.  
+Ask clarifying questions until the problem definition is unambiguous and testable, before starting any implementation.
 
-1.  **Outdated `README.md`:** The documentation is the biggest issue. It's significantly out of sync with the actual implementation.
-    *   It specifies `.csv` files for antibiotics and organisms, but the example and the code use `.json`.
-    *   It fails to mention the critical `data-src.json` file, which is the key to managing multiple data sources.
-    *   It doesn't describe the more complex data structures used (e.g., antibiotic classes).
-2.  **Unimplemented `specimen` Feature:** The `README.md` and the `%%RESIST%%` directive mention a `specimen` parameter for filtering data (e.g., by "urine" or "blood" samples). However, this functionality is not present in the data processing logic or the example data.
+---
+## E2E Testing Setup
 
-### Conclusion
+A robust end-to-end (E2E) testing environment has been configured using Playwright.
 
-This is a well-engineered and powerful plugin with a clear separation of concerns and several clever performance optimizations. Its main weakness is the outdated documentation, which does not reflect the more flexible and powerful capabilities of the actual implementation.
+### Workflow
+The testing process follows a strict build-then-test workflow to ensure tests run against a production-like static build, eliminating the flakiness of a hot-reloading development server.
+
+1.  **Build the site:** `npm run site:build` (from the `example` directory)
+2.  **Run tests:** `npm run test:e2e` (from the root directory)
+
+This process is orchestrated automatically by Playwright's `webServer` configuration.
+
+### Configuration
+-   **`playwright.config.ts`:** Configured to start the static server, wait for it to be ready, run the tests, and then automatically shut it down. It uses Firefox by default.
+-   **`package.json` (root):** Contains the `test:e2e` script to launch Playwright.
+-   **`package.json` (example):** Contains the `site:build` and `site:serve` scripts for Docusaurus.
+
+### Tests
+-   Tests are located in `tests/`.
+-   The main test file is `tests/home.spec.ts`.
+-   The tests are designed to be resilient to the client-side rendering nature of the `<ResistanceTable />` component. They correctly wait for the "Loading..." placeholder to disappear and for the final table content to be rendered before making assertions.

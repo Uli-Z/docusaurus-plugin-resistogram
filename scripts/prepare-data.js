@@ -10,7 +10,6 @@ const FILES_TO_DOWNLOAD = [
   'antibiotics.csv',
   'organisms.csv',
   'data_sources.csv',
-  'resistance-rki-ars-nw-2023.csv',
   'resistance_ars_2023_extracted.csv',
   'eucast_expected_resistance.csv',
 ];

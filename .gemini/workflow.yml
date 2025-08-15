@@ -1,0 +1,54 @@
+# This file documents the iterative development workflow for this project,
+# as defined in .gemini/GEMINI.md.
+
+workflow:
+  - step: 1
+    name: "Problem Definition"
+    description: "Collaborate with the user to define the problem, goals, constraints, acceptance criteria, and test matrix. Store the result in .gemini/problem.yml."
+    actions:
+      - "Engage in a Q&A session with the user."
+      - "Create or update .gemini/problem.yml."
+
+  - step: 2
+    name: "Test-Driven Development Cycle"
+    description: "Follow an iterative TDD process to implement the solution."
+    sub_steps:
+      - name: "Plan"
+        description: "Plan the minimal changes needed to pass the next failing test or improve quality."
+      - name: "Test"
+        description: "Write a failing unit or E2E test that covers a specific piece of functionality based on the acceptance criteria."
+        commands:
+          - "npm test"
+          - "npm run test:e2e"
+      - name: "Implement"
+        description: "Write the minimum amount of code required to make the failing test pass."
+      - name: "Refactor"
+        description: "Improve the code's internal structure and quality without altering its external behavior."
+
+  - step: 3
+    name: "Verification and Quality Assurance"
+    description: "Continuously verify the solution by running all tests and evaluating quality metrics."
+    actions:
+      - "Run all backend tests: npm test"
+      - "Run all E2E UI tests: npm run test:e2e (This implicitly runs 'npm run site:build' in the 'example' directory first, as per playwright.config.ts)."
+      - "Evaluate quality scores (Functional Correctness, Readability, Maintainability, etc.)."
+      - "Log results in .gemini/results.json."
+
+  - step: 4
+    name: "State Persistence"
+    description: "Persist the current state of the workflow to allow for interruptions and resumption."
+    actions:
+      - "Update .gemini/state.json with the current iteration, test results, quality scores, and next actions."
+      - "Append all file modifications to .gemini/changes.log."
+
+  - step: 5
+    name: "Finalization"
+    description: "Finalize the project when all criteria are met."
+    conditions:
+      - "All tests pass."
+      - "All quality scores are >= 9."
+      - "All acceptance criteria from .gemini/problem.yml are met."
+    actions:
+      - "Perform a full clean build and re-run all tests."
+      - "Produce a final .gemini/results.json."
+      - "Generate a comprehensive Git commit message."

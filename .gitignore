@@ -1,1 +1,37 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docusaurus specific
+/.docusaurus
+/blog/2021-08-26-welcome/endiliey.png
+/blog/2021-08-01-mdx-blog-post/docusaurus-logo.png
+
+# Gemini CLI
 .gemini/
+
+# Playwright
+/playwright-report/
+/test-results/
+/tests/01_landing_page.png

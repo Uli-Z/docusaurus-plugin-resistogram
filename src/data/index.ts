@@ -3,6 +3,9 @@ import { join } from "path";
 import { parse } from "csv-parse/sync";
 import { Source } from "../types";
 
+export { Source };
+
+
 // ============================================================================ 
 // Data Loading and Caching
 // ============================================================================ 
@@ -135,8 +138,8 @@ const makeTokenRegex = (synRaw: string) => {
   if (!syn) return null;
 
   let core = esc(syn)
-    .replace(/\\[.]/g, "\\.?")     // "." optional
-    .replace(/\\[\\s]+/g, "\\s+");   // beliebiger Whitespace
+    .replace(/\По/g, "\\.?")     // "." optional
+    .replace(/\\s+/g, "\\s+");   // beliebiger Whitespace
 
   const W = "\\p{L}\\p{N}";
 
@@ -148,10 +151,58 @@ const makeTokenRegex = (synRaw: string) => {
   }
 };
 
+export const selectDataSource = (src: string | undefined, sources: Source[]): Source => {
+  const getParentCount = (source: Source, allSources: Source[]): number => {
+    let count = 0;
+    let current = source;
+    const sourceMap = new Map(allSources.map(s => [s.id, s]));
+    while (current.parent_id && sourceMap.has(current.parent_id)) {
+      count++;
+      current = sourceMap.get(current.parent_id)!;
+    }
+    return count;
+  };
+
+  const sort = (sourcesToSort: Source[], priority: 'year' | 'parents'): Source[] => {
+    return sourcesToSort.sort((a, b) => {
+      const parentCountA = getParentCount(a, sources);
+      const parentCountB = getParentCount(b, sources);
+      const yearA = a.year;
+      const yearB = b.year;
+
+      if (priority === 'parents') {
+        if (parentCountA !== parentCountB) return parentCountB - parentCountA;
+        if (yearA !== yearB) return yearB - yearA;
+      } else { // priority === 'year'
+        if (yearA !== yearB) return yearB - yearA;
+        if (parentCountA !== parentCountB) return parentCountB - parentCountA;
+      }
+
+      return sources.indexOf(a) - sources.indexOf(b);
+    });
+  };
+
+  if (!src) {
+    return sort([...sources], 'year')[0];
+  }
+
+  const filteredSources = sources.filter(s =>
+    s.name_de.toLowerCase().includes(src.toLowerCase()) ||
+    s.year.toString().includes(src)
+  );
+
+  if (filteredSources.length === 0) {
+    return sort([...sources], 'year')[0];
+  }
+
+  return sort(filteredSources, 'parents')[0];
+};
+
 export const mkSynMap = (rows: any[]) =>
   rows.reduce<Map<string, string>>((m, r) => {
     const add = (s: string) => {
       if (!s) return;
+
       const t = s.trim();
       if (!t) return;
       m.set(t, r.amr_code);
