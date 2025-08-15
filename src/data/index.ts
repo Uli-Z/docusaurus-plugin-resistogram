@@ -131,7 +131,7 @@ const stripMarkdownLight = (s: string) =>
     .replace(/`{1,3}[\s\S]*?`{1,3}/g, " ")        // Inline/Block code
     .replace(/![[^\]]*\]\([^)]*\)/g, " ")        // Images
     .replace(/[[^\]]+]\[\([^)]*\)/g, "$1")      // Links -> Linktext
-    .replace(/[*_~#>/]+/g, " ")                   // Emphasis/Headings/Blockquotes
+    .replace(/[*_~#>/.,]+/g, " ")                   // Emphasis/Headings/Blockquotes/Punctuation
     .replace(/\s+/g, " ")                         // Whitespace normalisieren
     .trim();
 
@@ -144,7 +144,7 @@ const makeTokenRegex = (synRaw: string) => {
   if (!syn) return null;
 
   let core = esc(syn)
-    .replace(/\По/g, "\\.?")     // "." optional
+    .replace(/\\./g, "\\.?")     // "." optional
     .replace(/\\s+/g, "\\s+");   // beliebiger Whitespace
 
   const W = "\\p{L}\\p{N}";
