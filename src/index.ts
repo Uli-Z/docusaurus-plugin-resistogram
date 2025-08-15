@@ -67,10 +67,10 @@ export default function docusaurusPluginResistogram(
       const sharedDataFileName = "shared-resistogram-data.json";
       const sharedData = {
         id2MainSyn: Object.fromEntries(
-          new Map([...abx, ...org].map((r: any) => [r.amr_code, r.full_name_de]))
+          new Map([...abx, ...org].map((r: any) => [r.amr_code, { name_de: r.full_name_de, name_en: r.full_name_en }]))
         ),
         id2ShortName: Object.fromEntries(
-          new Map([...abx, ...org].map((r: any) => [r.amr_code, r.short_name_de]))
+          new Map([...abx, ...org].map((r: any) => [r.amr_code, { name_de: r.short_name_de, name_en: r.short_name_en }]))
         ),
         classToAbx: Object.fromEntries(classToAbx),
         allAbxIds,

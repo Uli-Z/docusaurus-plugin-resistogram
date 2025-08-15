@@ -54,7 +54,6 @@ export function getSharedData(
 
       const sources = rawSources.map((s: any) => ({
         ...s,
-        long_name: s.source_long_name_de || s.source_long_name_en || s.name_de,
         url: s.source_url,
       }));
 
@@ -216,10 +215,15 @@ export const mkSynMap = (rows: any[]) =>
       const noDots = t.replace(/\./g, "");
       if (noDots !== t) m.set(noDots, r.amr_code);
     };
-    (r.synonyms_de ?? "").split(";").forEach(add);
-    add(r.full_name_de);
-    add(r.short_name_de);
+
+    // Process all relevant columns for synonyms and names
     add(r.amr_code);
+    for (const key in r) {
+      if (key.startsWith('synonyms_') || key.startsWith('full_name_') || key.startsWith('short_name_')) {
+        (r[key] ?? "").split(";").forEach(add);
+      }
+    }
+    
     return m;
   }, new Map());
 

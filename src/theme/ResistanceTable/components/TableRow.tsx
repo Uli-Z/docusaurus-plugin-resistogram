@@ -1,6 +1,9 @@
 import React from 'react';
 import { TableCell } from './TableCell';
 import { hl } from '../utils';
+import { getTranslator } from '../i18n';
+
+type Translator = ReturnType<typeof getTranslator>;
 
 // Mock types
 type FormattedRow = Record<string, any> & { rowLong: string; rowShort: string };
@@ -22,6 +25,7 @@ interface TableRowProps {
   styles: any;
   colorMode: 'dark' | 'light';
   sourceId2ShortName: Map<string, string>;
+  t: Translator;
 }
 
 export const TableRow = React.memo(
@@ -40,6 +44,7 @@ export const TableRow = React.memo(
     styles,
     colorMode,
     sourceId2ShortName,
+    t,
   }: TableRowProps) => {
     const highlight = hoveredRow === rowIndex;
     const abxCol = { whiteSpace: 'nowrap', width: '1%' } as const;
@@ -92,6 +97,7 @@ export const TableRow = React.memo(
             styles={styles}
             colorMode={colorMode}
             sourceId2ShortName={sourceId2ShortName}
+            t={t}
           />
         ))}
       </tr>
