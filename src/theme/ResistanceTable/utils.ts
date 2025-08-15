@@ -90,7 +90,7 @@ export const formatMatrix = (
     cols.forEach((c) => {
       const cell = matrix.get(rowId)?.get(c.id);
       row[c.name] = cell
-        ? { text: `${cell.resistance_pct}% (n=${cell.n_isolates})`, pct: parseFloat(cell.resistance_pct) }
+        ? { text: `${cell.resistance_pct}% (n=${cell.n_isolates})`, pct: parseFloat(cell.resistance_pct), source_id: cell.source_id }
         : undefined;
     });
     return row;

@@ -21,6 +21,7 @@ interface TableRowProps {
   onHideTooltip: () => void;
   styles: any;
   colorMode: 'dark' | 'light';
+  sourceId2ShortName: Map<string, string>;
 }
 
 export const TableRow = React.memo(
@@ -38,6 +39,7 @@ export const TableRow = React.memo(
     onHideTooltip,
     styles,
     colorMode,
+    sourceId2ShortName,
   }: TableRowProps) => {
     const highlight = hoveredRow === rowIndex;
     const abxCol = { whiteSpace: 'nowrap', width: '1%' } as const;
@@ -89,6 +91,7 @@ export const TableRow = React.memo(
             onHideTooltip={onHideTooltip}
             styles={styles}
             colorMode={colorMode}
+            sourceId2ShortName={sourceId2ShortName}
           />
         ))}
       </tr>

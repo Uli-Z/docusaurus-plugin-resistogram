@@ -19,6 +19,7 @@ interface TableBodyProps {
   onHideTooltip: () => void;
   styles: any;
   colorMode: 'dark' | 'light';
+  sourceId2ShortName: Map<string, string>;
 }
 
 export const TableBody = ({
@@ -34,6 +35,7 @@ export const TableBody = ({
   onHideTooltip,
   styles,
   colorMode,
+  sourceId2ShortName,
 }: TableBodyProps) => {
   return (
     <tbody>
@@ -53,6 +55,7 @@ export const TableBody = ({
           onHideTooltip={onHideTooltip}
           styles={styles}
           colorMode={colorMode}
+          sourceId2ShortName={sourceId2ShortName}
         />
       ))}
     </tbody>

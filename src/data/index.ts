@@ -103,7 +103,11 @@ export const loadResistanceDataForSource = async (
   if (path.length === 0) return [];
 
   const allDataFrames = await Promise.all(
-    path.map(s => loadCsv(dataDir, s.source_file))
+    path.map(s => 
+      loadCsv(dataDir, s.source_file).then(rows => 
+        rows.map(row => ({ ...row, source_id: s.id }))
+      )
+    )
   );
 
   const mergedData = new Map<string, any>();
