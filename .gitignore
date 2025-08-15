@@ -35,3 +35,8 @@ yarn-error.log*
 /playwright-report/
 /test-results/
 /tests/01_landing_page.png
+
+# Example Site
+/example/build
+/example/.docusaurus
+/example/.cache
