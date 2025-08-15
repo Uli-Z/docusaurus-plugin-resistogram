@@ -28,9 +28,6 @@ yarn-error.log*
 /blog/2021-08-26-welcome/endiliey.png
 /blog/2021-08-01-mdx-blog-post/docusaurus-logo.png
 
-# Gemini CLI
-.gemini/
-
 # Playwright
 /playwright-report/
 /test-results/

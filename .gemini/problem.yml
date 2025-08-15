@@ -1,40 +1,24 @@
-# Problem Definition: Enhance the 'resist' directive with a 'src' parameter for data source filtering.
-
-goal: "Enhance the `resist` Markdown directive by adding a new `src` parameter. This parameter will allow authors to specify which data source should be used to render the resistogram table, with intelligent filtering and fallback logic."
+goals:
+  - "Introduce localization (i18n) for the ResistanceTable component."
+  - "Allow users to set the display language via a `locale` prop in the `%%Resist` directive."
+  - "Translate all UI labels of the component into German, English, French, Spanish, and Italian."
+  - "Load and display organism and antibiotic names from the data sources in the selected language."
+  - "Ensure the component defaults to the current Docusaurus site language if no `locale` is specified."
 
 constraints:
-  - "The `src` parameter must be optional."
-  - "Filtering on `title` and `year` must be case-insensitive."
-  - "The solution must not break existing usages of the `resist` directive."
+  - "The implementation must be done within the existing React component structure."
+  - "The solution should be easily extensible for new languages."
+  - "Data column naming convention (e.g., `name_de`, `name_en`) must be handled dynamically."
 
 out_of_scope:
-  - "Changes to the visual appearance of the ResistanceTable."
-  - "Adding new data sources; only the selection mechanism will be modified."
+  - "Adding automated E2E tests for localization (will be tested manually by the user)."
+  - "Translating the content of the website itself (e.g., Markdown pages)."
+  - "Adding new languages beyond DE, EN, FR, ES, IT in this iteration."
 
 acceptance_criteria:
-  - "A `::resist[src=2023]` directive correctly selects the best-matching data source from 2023."
-  - "A `::resist[src='ARS 2023']` directive selects the unique data source with that title."
-  - "A `::resist` directive (with no `src` parameter) automatically selects the overall newest data source."
-  - "If a filter matches multiple sources, the selection is prioritized by: 1. Highest parent count, 2. Newest year, 3. Original file order."
-  - "The system correctly handles cases where the filter matches no data sources (e.g., by logging a warning and falling back to the default newest source)."
+  - "When a user adds `locale=\"de\"` to the `%%Resist` directive, all UI texts and relevant data (organisms, antibiotics, sources) are displayed in German."
+  - "When a user adds `locale=\"fr\"`, UI texts are displayed in French. Data names (antibiotics, etc.) fall back to English if a French version (`_fr`) is not available in the data files."
+  - "If the `locale` prop is omitted, the component automatically uses the active language from Docusaurus for both UI and data."
+  - "The system correctly falls back to English data names if the requested language's data column does not exist."
+  - "The implementation does not break any existing functionality of the `ResistanceTable` component."
 
-interfaces:
-  - "The `resist` directive in MDX files, which will now accept an optional `src` attribute."
-  - "The `data_sources.csv` file, which acts as the master list of available data sources."
-
-test_matrix:
-  - test_case: "Directive with no 'src' parameter."
-    expected_result: "The overall newest data source is used."
-    test_type: "E2E"
-  - test_case: "Directive with 'src' matching a specific year (e.g., '2023')."
-    expected_result: "The best-matching data source from that year is used, following the parent/year/order sort logic."
-    test_type: "E2E"
-  - test_case: "Directive with 'src' matching a unique title."
-    expected_result: "The uniquely identified data source is used."
-    test_type: "E2E"
-  - test_case: "Directive with 'src' matching multiple sources."
-    expected_result: "The one with the most parents is chosen. If tied, the newest is chosen. If still tied, the one listed first in the CSV is used."
-    test_type: "Unit"
-  - test_case: "Directive with 'src' that does not match any source."
-    expected_result: "A warning is logged and the default (newest) source is used."
-    test_type: "Unit"

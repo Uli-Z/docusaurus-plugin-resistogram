@@ -1,5 +1,8 @@
 import React from 'react';
 import { TableRow } from './TableRow';
+import { getTranslator } from '../i18n';
+
+type Translator = ReturnType<typeof getTranslator>;
 
 // Mock types
 type FormattedRow = Record<string, any> & { rowLong: string; rowShort: string };
@@ -20,6 +23,7 @@ interface TableBodyProps {
   styles: any;
   colorMode: 'dark' | 'light';
   sourceId2ShortName: Map<string, string>;
+  t: Translator;
 }
 
 export const TableBody = ({
@@ -36,6 +40,7 @@ export const TableBody = ({
   styles,
   colorMode,
   sourceId2ShortName,
+  t,
 }: TableBodyProps) => {
   return (
     <tbody>
@@ -56,6 +61,7 @@ export const TableBody = ({
           styles={styles}
           colorMode={colorMode}
           sourceId2ShortName={sourceId2ShortName}
+          t={t}
         />
       ))}
     </tbody>

@@ -14,7 +14,7 @@ import { TableHeader, TableBody, Legend } from './components';
 import styles from './styles.module.css';
 import { Source } from '../../../types';
 import { groupAndSortAntibiotics, buildMatrix, formatMatrix } from './utils';
-
+import { getTranslator, Locale } from './i18n';
 
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
@@ -29,6 +29,7 @@ interface ResistanceTableProps {
   dataSourceId?: string;
   layout?: 'auto' | 'antibiotics-rows' | 'organisms-rows';
   showEmpty?: 'true' | 'false';
+  locale?: Locale;
 }
 
 // Helper to flatten the hierarchical source structure
@@ -74,21 +75,25 @@ async function fetchResistanceData(path: string) {
 }
 
 
-export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds'> & { antibioticIds: string, organismIds: string, dataSourceId?: string }) {
+export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds'> & { antibioticIds: string, organismIds: string, dataSourceId?: string, locale?: Locale }) {
   const {
     antibioticIds: antibioticIdsJson,
     organismIds: organismIdsJson,
     dataSourceId,
     layout = 'auto',
     showEmpty: showEmptyProp = 'false',
+    locale: localeProp,
   } = props;
 
   const antibioticIds = useMemo(() => JSON.parse(antibioticIdsJson), [antibioticIdsJson]);
   const organismIds = useMemo(() => JSON.parse(organismIdsJson), [organismIdsJson]);
 
-  const { siteConfig, globalData } = useDocusaurusContext();
+  const { siteConfig, globalData, i18n } = useDocusaurusContext();
   const { baseUrl } = siteConfig;
   const pluginData = globalData['docusaurus-plugin-resistogram']['example-resistogram'];
+
+  const locale = localeProp || i18n.currentLocale as Locale;
+  const t = useMemo(() => getTranslator(locale), [locale]);
 
   const { colorMode } = useColorMode();
 
@@ -206,8 +211,10 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const finalColIds = useMemo(() => showEmpty ? colIds : colIds.filter((id) => !emptyColIds.has(id)), [showEmpty, colIds, emptyColIds]);
 
   const { data, cols } = useMemo(
-    () => formatMatrix(matrix, finalRowIds, finalColIds, new Map(Object.entries(id2Main ?? {})), new Map(Object.entries(id2Short ?? {}))),
-    [matrix, finalRowIds, finalColIds, id2Main, id2Short],
+    () => {
+      return formatMatrix(matrix, finalRowIds, finalColIds, new Map(Object.entries(id2Main ?? {})), new Map(Object.entries(id2Short ?? {})), locale)
+    },
+    [matrix, finalRowIds, finalColIds, id2Main, id2Short, locale],
   );
   
   const hierarchicalSources = pluginData?.sources ?? [];
@@ -216,10 +223,11 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const sourceId2ShortName = useMemo(() => {
     const map = new Map<string, string>();
     flattendSources.forEach(s => {
-      map.set(s.id, s.source_short_name_de || s.name_de);
+      const shortName = s[`source_short_name_${locale}`] || s[`name_${locale}`] || s.source_short_name_en || s.name_en || s.id;
+      map.set(s.id, shortName);
     });
     return map;
-  }, [flattendSources]);
+  }, [flattendSources, locale]);
 
   const sourceChain = useMemo(() => {
     if (!selectedSource || flattendSources.length === 0) {
@@ -302,16 +310,19 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     const hiddenRowCount = emptyRowIds.size;
     const hiddenColCount = emptyColIds.size;
     if (!hiddenRowCount && !hiddenColCount) return null;
-    const rowLabel = rowsAreAbx ? 'antibiotic' : 'organism';
-    const colLabel = rowsAreAbx ? 'organism' : 'antibiotic';
+    
+    const rowLabel = rowsAreAbx ? t(hiddenRowCount > 1 ? 'antibiotics' : 'antibiotic') : t(hiddenRowCount > 1 ? 'organisms' : 'organism');
+    const colLabel = rowsAreAbx ? t(hiddenColCount > 1 ? 'organisms' : 'organism') : t(hiddenColCount > 1 ? 'antibiotics' : 'antibiotic');
+
     const parts: string[] = [];
-    if (hiddenRowCount) parts.push(`${hiddenRowCount} ${rowLabel}${hiddenRowCount > 1 ? 's' : ''}`);
-    if (hiddenColCount) parts.push(`${hiddenColCount} ${colLabel}${hiddenColCount > 1 ? 's' : ''}`);
+    if (hiddenRowCount) parts.push(`${hiddenRowCount} ${rowLabel}`);
+    if (hiddenColCount) parts.push(`${hiddenColCount} ${colLabel}`);
+
     return (
       <div>
-        {parts.join(' and ')} {showEmpty ? 'with no data' : 'hidden'} (
+        {parts.join(` ${t('hiddenInfoAnd')} `)} {showEmpty ? t('hiddenInfoWithNoData') : t('hiddenInfoHidden')} (
         <a href="#" onClick={(e) => { e.preventDefault(); setShowEmpty(!showEmpty); }}>
-          {showEmpty ? 'hide' : 'show'}
+          {showEmpty ? t('hide') : t('show')}
         </a>
         )
       </div>
@@ -322,13 +333,13 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     const isStale = isLoading && data && data.length > 0;
     const isInitialLoad = isLoading && (!data || data.length === 0);
 
-    if (isInitialLoad) return <div className={styles.placeholder}><div className={styles.spinner} />Loading resistance data...</div>;
-    if (error) return <div className={styles.error}>Error: {error.message}</div>;
+    if (isInitialLoad) return <div className={styles.placeholder}><div className={styles.spinner} />{t('loading')}</div>;
+    if (error) return <div className={styles.error}>{t('error')}: {error.message}</div>;
     if (!data || data.length === 0) {
       return (
         <div className={styles.noDataContainer}>
-          <p><strong>Resistance Table</strong></p>
-          <p>No matching resistance data found for the selected criteria in this source.</p>
+          <p><strong>{t('resistanceTable')}</strong></p>
+          <p>{t('noData')}</p>
         </div>
       );
     }
@@ -338,26 +349,29 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
         {isStale && <div className={styles.tableOverlay}><div className={styles.spinner} /></div>}
         <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <TableHeader {...{ cols, displayMode: display, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles }} />
-          <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode, sourceId2ShortName }} />
+          <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode, sourceId2ShortName, t }} />
         </table>
         <Legend {...{ cols, displayMode: display, styles }} />
         <div className={styles.sourceInfo}>
           {renderHiddenInfo()}
           {sourceChain.length > 0 && (
             <>
-              {sourceChain.length > 1 ? 'Quellen' : 'Quelle'}:{' '}
-              {sourceChain.map((source, index) => (
-                <React.Fragment key={source.id}>
-                  {source.url ? (
-                    <a href={source.url} target="_blank" rel="noopener noreferrer">
-                      {source.long_name}
-                    </a>
-                  ) : (
-                    <span>{source.long_name}</span>
-                  )}
-                  {index < sourceChain.length - 1 && ', '}
-                </React.Fragment>
-              ))}
+              {sourceChain.length > 1 ? t('sources') : t('source')}:{' '}
+              {sourceChain.map((source, index) => {
+                const longName = source[`source_long_name_${locale}`] || source[`name_${locale}`] || source.source_long_name_en || source.name_en || source.id;
+                return (
+                  <React.Fragment key={source.id}>
+                    {source.url ? (
+                      <a href={source.url} target="_blank" rel="noopener noreferrer">
+                        {longName}
+                      </a>
+                    ) : (
+                      <span>{longName}</span>
+                    )}
+                    {index < sourceChain.length - 1 && ', '}
+                  </React.Fragment>
+                );
+              })}
             </>
           )}
         </div>
@@ -365,20 +379,20 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     );
   };
 
-  if (!pluginData) return <div className={styles.error}>Error: Docusaurus plugin data not found.</div>;
+  if (!pluginData) return <div className={styles.error}>{t('error')}: {t('pluginError')}</div>;
 
   return (
     <RadixTooltip.Provider>
       <div ref={containerRef} style={{ visibility: isVisible ? 'visible' : 'hidden', minHeight: '150px' }}>
         <div className={styles.rootContainer}>
           {hierarchicalSources.length > 0 && (
-            <SourceSwitcher {...{ sources: hierarchicalSources, selected: selectedSource, onSelect: setSelectedSource, styles }} />
+            <SourceSwitcher {...{ sources: hierarchicalSources, selected: selectedSource, onSelect: setSelectedSource, styles, locale }} />
           )}
           <div className={styles.tableContainer}>
             {renderContent()}
           </div>
         </div>
-        {!isVisible && !isLoading && <div className={styles.placeholder}>Calculating table layout...</div>}
+        {!isVisible && !isLoading && <div className={styles.placeholder}>{t('calculatingLayout')}</div>}
       </div>
 
       <RadixTooltip.Root open={tooltipOpen} onOpenChange={setTooltipOpen}>

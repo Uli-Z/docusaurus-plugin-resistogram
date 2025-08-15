@@ -1,3 +1,5 @@
+import { Locale } from './i18n';
+
 /**
  * This file contains pure data processing functions that are not React components
  * and do not rely on React hooks.
@@ -69,23 +71,30 @@ export const buildMatrix = (
   return m;
 };
 
+const getLocalizedName = (id: string, names: Map<string, any>, locale: Locale) => {
+  const nameObj = names.get(id);
+  if (!nameObj) return id;
+  return nameObj[`name_${locale}`] || nameObj.name_en || id;
+};
+
 export const formatMatrix = (
   matrix: Map<string, Map<string, any>>,
   rowIds: string[],
   colIds: string[],
-  id2Main: Map<string, string>,
-  id2Short: Map<string, string>,
+  id2Main: Map<string, any>,
+  id2Short: Map<string, any>,
+  locale: Locale,
 ) => {
   const cols = colIds.map((id) => ({
     id,
-    name: id2Main.get(id) ?? id,
-    short: id2Short.get(id) ?? id,
+    name: getLocalizedName(id, id2Main, locale),
+    short: getLocalizedName(id, id2Short, locale),
   }));
 
   const data = rowIds.map((rowId) => {
     const row: Record<string, any> = {
-      rowLong: id2Main.get(rowId) ?? rowId,
-      rowShort: id2Short.get(rowId) ?? id2Main.get(rowId) ?? rowId,
+      rowLong: getLocalizedName(rowId, id2Main, locale),
+      rowShort: getLocalizedName(rowId, id2Short, locale) ?? getLocalizedName(rowId, id2Main, locale),
     };
     cols.forEach((c) => {
       const cell = matrix.get(rowId)?.get(c.id);

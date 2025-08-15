@@ -8,4 +8,5 @@ export interface Source {
   url?: string;
   source_file: string;
   children?: Source[];
+  [key: string]: any; // Allow for dynamic properties like name_en, long_name_fr etc.
 }

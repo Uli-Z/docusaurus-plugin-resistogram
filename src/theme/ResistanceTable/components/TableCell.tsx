@@ -1,6 +1,9 @@
 import React from 'react';
 import { CellTooltipContent } from '../ui/components';
 import { cellStyle, hl } from '../utils';
+import { getTranslator } from '../i18n';
+
+type Translator = ReturnType<typeof getTranslator>;
 
 // Mock types will be replaced with proper types later
 type FormattedCell = { text: string; pct?: number };
@@ -22,6 +25,7 @@ interface TableCellProps {
   styles: any;
   colorMode: 'dark' | 'light';
   sourceId2ShortName: Map<string, string>;
+  t: Translator;
 }
 
 export const TableCell = React.memo(
@@ -40,6 +44,7 @@ export const TableCell = React.memo(
     styles,
     colorMode,
     sourceId2ShortName,
+    t,
   }: TableCellProps) => {
     const cell = row[col.name] as FormattedCell;
     const highlight = hoveredRow === rowIndex || hoveredCol === colIndex;
@@ -58,6 +63,7 @@ export const TableCell = React.memo(
           cell={cell}
           rowsAreAbx={rowsAreAbx}
           sourceName={cell?.source_id ? sourceId2ShortName.get(cell.source_id) : undefined}
+          t={t}
         />
       );
       onShowTooltip(content, event.currentTarget);
