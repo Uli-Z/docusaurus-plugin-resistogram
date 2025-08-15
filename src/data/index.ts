@@ -50,7 +50,14 @@ export function getSharedData(
       loadCsv(dir, files.antibiotics),
       loadCsv(dir, files.organisms),
       loadCsv(dir, files.sources),
-    ]).then(([abx, org, sources]) => {
+    ]).then(([abx, org, rawSources]) => {
+
+      const sources = rawSources.map((s: any) => ({
+        ...s,
+        long_name: s.source_long_name_de || s.source_long_name_en || s.name_de,
+        url: s.source_url,
+      }));
+
       const abxSyn2Id = mkSynMap(abx);
       const orgSyn2Id = mkSynMap(org);
       const allAbxIds = abx.filter((r: any) => r.class).map((r: any) => r.amr_code);
