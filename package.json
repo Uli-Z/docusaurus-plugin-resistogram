@@ -19,7 +19,11 @@
     "prepare": "npm run build",
     "clean": "rm -rf dist",
     "test": "jest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "example:install": "npm install --prefix example",
+    "example:start": "npm run --prefix example start",
+    "example:build": "npm run --prefix example build",
+    "example:serve": "npm run --prefix example serve"
   },
   "keywords": [
     "docusaurus",
