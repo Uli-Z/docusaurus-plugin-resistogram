@@ -76,6 +76,18 @@ async function fetchResistanceData(path: string) {
 
 
 export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds'> & { antibioticIds: string, organismIds: string, dataSourceId?: string, locale?: Locale }) {
+  // --- DEBUGGING ---
+  try {
+    console.log('--- ResistanceTable Props ---', {
+      ...props,
+      antibioticIds: JSON.parse(props.antibioticIds),
+      organismIds: JSON.parse(props.organismIds),
+    });
+  } catch (e) {
+    console.error("Could not parse props:", props);
+  }
+  // --- END DEBUGGING ---
+
   const {
     antibioticIds: antibioticIdsJson,
     organismIds: organismIdsJson,
