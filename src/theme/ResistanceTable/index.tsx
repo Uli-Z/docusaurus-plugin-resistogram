@@ -213,6 +213,23 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const hierarchicalSources = pluginData?.sources ?? [];
   const flattendSources = useMemo(() => flattenSources(hierarchicalSources), [hierarchicalSources]);
 
+  const sourceChain = useMemo(() => {
+    if (!selectedSource || flattendSources.length === 0) {
+      return [];
+    }
+    const chain: Source[] = [];
+    let currentSource: Source | undefined = selectedSource;
+    while (currentSource) {
+      chain.push(currentSource);
+      if (currentSource.parent_id) {
+        currentSource = flattendSources.find(s => s.id === currentSource.parent_id);
+      } else {
+        currentSource = undefined;
+      }
+    }
+    return chain.reverse(); // Reverse to show parent first
+  }, [selectedSource, flattendSources]);
+
   useIsomorphicLayoutEffect(() => {
     if (isLoading || error || !containerRef.current || !tableRef.current) return;
     const containerWidth = containerRef.current.clientWidth;
@@ -318,10 +335,23 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
         <Legend {...{ cols, displayMode: display, styles }} />
         <div className={styles.sourceInfo}>
           {renderHiddenInfo()}
-          Source:{' '}
-          <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">
-            {selectedSource.long_name}
-          </a>
+          {sourceChain.length > 0 && (
+            <>
+              {sourceChain.length > 1 ? 'Quellen' : 'Quelle'}:{' '}
+              {sourceChain.map((source, index) => (
+                <React.Fragment key={source.id}>
+                  {source.url ? (
+                    <a href={source.url} target="_blank" rel="noopener noreferrer">
+                      {source.long_name}
+                    </a>
+                  ) : (
+                    <span>{source.long_name}</span>
+                  )}
+                  {index < sourceChain.length - 1 && ', '}
+                </React.Fragment>
+              ))}
+            </>
+          )}
         </div>
       </>
     );
