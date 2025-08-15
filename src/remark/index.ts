@@ -12,143 +12,118 @@ export function mdastToPlainText(root: any): string {
     out += s;
   };
 
-  visit(root, (node, _idx, parent) => {
-    // 1) Harte Skips
+  visit(root, (node) => {
     if (node.type === "code" || node.type === "inlineCode") {
       return visit.SKIP;
     }
-    // 2) %%RESIST-Absätze gar nicht in den Suchtext aufnehmen
-    if (node.type === "paragraph") {
-      const txt = toString(node).trim();
-      if (/^%%RESIST([^%]*)%%$/.test(txt)) return visit.SKIP;
+    if (node.type === "paragraph" && /%%RESIST/.test(toString(node))) {
+       return visit.SKIP;
     }
-    // 3) Relevanter Text kommt aus allen "text"-Kindern – egal in welchem Container
     if (node.type === "text") {
       push(node.value as string);
-      return;
     }
-    // 4) Zeilenumbrüche als Leerzeichen normalisieren
     if (node.type === "break") {
       out += " ";
-      return;
     }
-    // 5) Für alle Container (heading, emphasis, strong, link, listItem, mdxJsx* etc.)
-    //     NICHT frühzeitig returnen → Kinder weiterbesuchen
-    return;
   });
 
-  // Stabiler, getrimmter Fließtext + Padding für sichere Wortgrenzen am Rand
   const compact = out.replace(/\s+/g, " ").trim();
   return ` ${compact} `;
 }
 
-// Helper to parse the parameter string from the markdown code block
 const parseParams = (s: string): Record<string, string> => {
   const params: Record<string, string> = {};
-  // This regex handles key=value pairs, where value can be a single word or a quoted string.
   const regex = /(\w+)=("([^"]*)"|'([^']*)'|(\S+))/g;
   let match;
   while ((match = regex.exec(s)) !== null) {
     const key = match[1];
-    // The value is in one of the capturing groups, depending on whether it was double-quoted, single-quoted, or unquoted.
     const value = match[3] ?? match[4] ?? match[5];
     params[key] = value;
   }
   return params;
 };
 
-/**
- * This is a Docusaurus Remark plugin factory.
- * It's configured in docusaurus.config.js and receives the plugin options.
- */
 export default function remarkResistogram(options: { dataDir?: string, files?: any }) {
   const { dataDir = "data", files = {} } = options;
 
-  // The actual remark plugin, which has access to the options via closure.
   return async (tree: any, file: any) => {
     const pageText = mdastToPlainText(tree);
-    const resistogramNodes: any[] = [];
+    const nodesToProcess: any[] = [];
 
     visit(tree, "paragraph", (node: any, index: number, parent: any) => {
-      const text = toString(node).trim();
-      const match = text.match(/^%%RESIST([^%]*)%%$/);
-      if (match) {
-        resistogramNodes.push({ node, index, parent, paramsStr: match[1] });
+      if (toString(node).includes("%%RESIST")) {
+        nodesToProcess.push({ node, index, parent });
       }
     });
 
-    if (resistogramNodes.length === 0) {
-      return; // No resistogram blocks on this page
-    }
+    if (nodesToProcess.length === 0) return;
 
-    // All data loading and processing happens here, once per page, during build.
-    const siteDir = file.cwd; // `cwd` is the site directory
+    const siteDir = file.cwd;
     const dataPath = join(siteDir, dataDir);
-    const { abxSyn2Id, orgSyn2Id, allAbxIds, allOrgIds, sources } = await getSharedData(dataPath, {
+    const sharedData = await getSharedData(dataPath, {
         antibiotics: files.antibiotics ?? "antibiotics.csv",
         organisms: files.organisms ?? "organisms.csv",
         sources: files.sources ?? "data_sources.csv",
     });
 
-    for (const { node, index, parent, paramsStr } of resistogramNodes) {
-      const params = parseParams(paramsStr);
+    let importAdded = false;
 
-      // Resolve the 'auto' or 'all' params into concrete ID lists
-      const antibioticIds = resolveIds(params.abx, allAbxIds, abxSyn2Id, pageText);
-      const organismIds = resolveIds(params.org, allOrgIds, orgSyn2Id, pageText);
+    for (let i = nodesToProcess.length - 1; i >= 0; i--) {
+      const { node, index, parent } = nodesToProcess[i];
+      const text = toString(node);
+      const regex = /%%RESIST\s+([^%]*)%%/;
+      const match = text.match(regex);
+
+      if (!match) continue;
+
+      const beforeText = text.slice(0, match.index).trim();
+      const afterText = text.slice(match.index + match[0].length).trim();
       
-      const selectedSource = selectDataSource(params.src, sources);
+      const paramsStr = match[1];
+      const params = parseParams(paramsStr);
+      const antibioticIds = resolveIds(params.abx, sharedData.allAbxIds, sharedData.abxSyn2Id, pageText);
+      const organismIds = resolveIds(params.org, sharedData.allOrgIds, sharedData.orgSyn2Id, pageText);
+      const selectedSource = selectDataSource(params.src, sharedData.sources);
 
-      // Create the new MDX node for the React component
-      const mdxNode = {
+      const resistogramNode = {
         type: "mdxJsxFlowElement",
         name: "ResistanceTable",
         attributes: [
           { type: "mdxJsxAttribute", name: "antibioticIds", value: JSON.stringify(antibioticIds) },
           { type: "mdxJsxAttribute", name: "organismIds", value: JSON.stringify(organismIds) },
           { type: "mdxJsxAttribute", name: "dataSourceId", value: selectedSource.id },
-          // Pass through other parameters like layout, showEmpty etc.
           ...Object.entries(params).map(([key, value]) => ({
-            type: "mdxJsxAttribute",
-            name: key,
-            value: value,
+            type: "mdxJsxAttribute", name: key, value: value
           })),
         ],
         children: [],
       };
+      importAdded = true;
 
-      // Replace the original paragraph node with the new component node
-      parent.children.splice(index, 1, mdxNode);
+      const newNodes = [];
+      if (beforeText) {
+        newNodes.push({ type: 'paragraph', children: [{ type: 'text', value: beforeText }] });
+      }
+      newNodes.push(resistogramNode);
+      if (afterText) {
+        newNodes.push({ type: 'paragraph', children: [{ type: 'text', value: afterText }] });
+      }
+
+      if (newNodes.length > 0) {
+        parent.children.splice(index, 1, ...newNodes);
+      }
     }
 
-    // Add the import statement for the component to the top of the MDX file
-    tree.children.unshift({
-      type: "mdxjsEsm",
-      value: "import ResistanceTable from '@theme/ResistanceTable';",
-      data: {
-        estree: {
-          type: "Program",
-          body: [
-            {
-              type: "ImportDeclaration",
-              specifiers: [
-                {
-                  type: "ImportDefaultSpecifier",
-                  local: { type: "Identifier", name: "ResistanceTable" },
-                },
-              ],
-              source: {
-                type: "Literal",
-                value: "@theme/ResistanceTable",
-                raw: "'@theme/ResistanceTable'",
-              },
-            },
-          ],
-          sourceType: "module",
-        },
-      },
-    });
+    if (importAdded) {
+      tree.children.unshift({
+        type: "mdxjsEsm",
+        value: "import ResistanceTable from '@theme/ResistanceTable';",
+        data: { estree: { type: "Program", body: [ { type: "ImportDeclaration", specifiers: [ { type: "ImportDefaultSpecifier", local: { type: "Identifier", name: "ResistanceTable" }, }, ], source: { type: "Literal", value: "@theme/ResistanceTable", raw: "'@theme/ResistanceTable'", }, }, ], sourceType: "module", }, },
+      });
+    }
 
     return tree;
   };
 }
+
+
