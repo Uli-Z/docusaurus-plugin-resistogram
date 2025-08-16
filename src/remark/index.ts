@@ -81,8 +81,8 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
       
       const paramsStr = match[1];
       const params = parseParams(paramsStr);
-      const antibioticIds = resolveIds(params.abx, sharedData.allAbxIds, sharedData.abxSyn2Id, pageText);
-      const organismIds = resolveIds(params.org, sharedData.allOrgIds, sharedData.orgSyn2Id, pageText);
+      const { resolved: antibioticIds, unresolved: unresolvedAbx } = resolveIds(params.abx, sharedData.allAbxIds, sharedData.abxSyn2Id, pageText);
+      const { resolved: organismIds, unresolved: unresolvedOrg } = resolveIds(params.org, sharedData.allOrgIds, sharedData.orgSyn2Id, pageText);
       const selectedSource = selectDataSource(params.src, sharedData.sources);
 
       const resistogramNode = {
@@ -91,6 +91,8 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
         attributes: [
           { type: "mdxJsxAttribute", name: "antibioticIds", value: JSON.stringify(antibioticIds) },
           { type: "mdxJsxAttribute", name: "organismIds", value: JSON.stringify(organismIds) },
+          { type: "mdxJsxAttribute", name: "unresolvedAbx", value: JSON.stringify(unresolvedAbx) },
+          { type: "mdxJsxAttribute", name: "unresolvedOrg", value: JSON.stringify(unresolvedOrg) },
           { type: "mdxJsxAttribute", name: "dataSourceId", value: selectedSource.id },
           ...Object.entries(params).map(([key, value]) => ({
             type: "mdxJsxAttribute", name: key, value: value

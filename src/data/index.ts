@@ -280,8 +280,10 @@ export const resolveIds = (
   allIds: string[],
   synMap: Map<string, string>,
   pageText: string,
-): string[] => {
-  if (param === "auto") {
+): { resolved: string[]; unresolved: string[] } => {
+  const empty = { resolved: [], unresolved: [] };
+
+  if (!param || param === "auto") {
     const detected = new Set<string>();
     const text = stripMarkdownLight(pageText);
 
@@ -298,20 +300,27 @@ export const resolveIds = (
         }
       }
     }
-    return [...detected];
+    return { resolved: [...detected], unresolved: [] };
   }
 
-  if (!param || param === "all") return allIds;
+  if (param === "all") return { resolved: allIds, unresolved: [] };
 
   // Manual path, using a cached lowercase map for performance.
   const lowerCaseSynMap = getLowerCaseSynMap(synMap);
-  const requested = param.split(",").map((t) => t.trim().toLowerCase());
+  const requested = param.split(",").map((t) => t.trim());
+  
+  const resolved = new Set<string>();
+  const unresolved = new Set<string>();
 
-  return Array.from(
-    new Set(
-      requested
-      .map((t) => lowerCaseSynMap.get(t) ?? t.toUpperCase())
-      .filter((id): id is string => allIds.includes(id)),
-    ),
-  );
+  for (const token of requested) {
+    const lowerToken = token.toLowerCase();
+    const id = lowerCaseSynMap.get(lowerToken) ?? token.toUpperCase();
+    if (allIds.includes(id)) {
+      resolved.add(id);
+    } else {
+      unresolved.add(token);
+    }
+  }
+
+  return { resolved: Array.from(resolved), unresolved: Array.from(unresolved) };
 };

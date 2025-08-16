@@ -26,10 +26,14 @@ const VirtualTrigger = React.forwardRef<HTMLSpanElement, {}>(function VirtualTri
 interface ResistanceTableProps {
   antibioticIds: string[];
   organismIds: string[];
+  unresolvedAbx: string[];
+  unresolvedOrg: string[];
   dataSourceId?: string;
   layout?: 'auto' | 'antibiotics-rows' | 'organisms-rows';
   showEmpty?: 'true' | 'false';
   locale?: Locale;
+  abx?: string;
+  org?: string;
 }
 
 // Helper to flatten the hierarchical source structure
@@ -75,13 +79,15 @@ async function fetchResistanceData(path: string) {
 }
 
 
-export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds'> & { antibioticIds: string, organismIds: string, dataSourceId?: string, locale?: Locale }) {
+export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds' | 'unresolvedAbx' | 'unresolvedOrg'> & { antibioticIds: string, organismIds: string, unresolvedAbx: string, unresolvedOrg: string, dataSourceId?: string, locale?: Locale, abx?: string, org?: string }) {
   // --- DEBUGGING ---
   try {
     console.log('--- ResistanceTable Props ---', {
       ...props,
       antibioticIds: JSON.parse(props.antibioticIds),
       organismIds: JSON.parse(props.organismIds),
+      unresolvedAbx: JSON.parse(props.unresolvedAbx),
+      unresolvedOrg: JSON.parse(props.unresolvedOrg),
     });
   } catch (e) {
     console.error("Could not parse props:", props);
@@ -91,14 +97,20 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const {
     antibioticIds: antibioticIdsJson,
     organismIds: organismIdsJson,
+    unresolvedAbx: unresolvedAbxJson,
+    unresolvedOrg: unresolvedOrgJson,
     dataSourceId,
     layout = 'auto',
     showEmpty: showEmptyProp = 'false',
     locale: localeProp,
+    abx: abxParam,
+    org: orgParam,
   } = props;
 
   const antibioticIds = useMemo(() => JSON.parse(antibioticIdsJson), [antibioticIdsJson]);
   const organismIds = useMemo(() => JSON.parse(organismIdsJson), [organismIdsJson]);
+  const unresolvedAbx = useMemo(() => JSON.parse(unresolvedAbxJson), [unresolvedAbxJson]);
+  const unresolvedOrg = useMemo(() => JSON.parse(unresolvedOrgJson), [unresolvedOrgJson]);
 
   const { siteConfig, globalData, i18n } = useDocusaurusContext();
   const { baseUrl } = siteConfig;
@@ -174,8 +186,25 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     id2MainSyn: id2Main,
     id2ShortName: id2Short,
     allAbxIds,
+    allOrgIds,
     classToAbx: classToAbxObj,
   } = sharedData || {};
+
+  const { invalidAbxIds, invalidOrgIds } = useMemo(() => {
+    const getInvalidIds = (param: string | undefined, allPossibleIds: string[] | undefined): string[] => {
+      if (!param || param === 'auto' || param === 'all' || !allPossibleIds) {
+        return [];
+      }
+      const requested = param.split(',').map(s => s.trim()).filter(Boolean);
+      // An ID is invalid if it was requested but is not in the master list of all possible IDs.
+      return requested.filter(id => !allPossibleIds.includes(id));
+    };
+
+    return {
+      invalidAbxIds: getInvalidIds(abxParam, allAbxIds),
+      invalidOrgIds: getInvalidIds(orgParam, allOrgIds),
+    };
+  }, [abxParam, orgParam, allAbxIds, allOrgIds]);
 
   const classToAbx = useMemo(
     () => new Map<string, string[]>(Object.entries(classToAbxObj ?? {})),
@@ -259,13 +288,26 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   }, [selectedSource, flattendSources]);
 
   useIsomorphicLayoutEffect(() => {
-    if (isLoading || error || !containerRef.current || !tableRef.current) return;
-    const containerWidth = containerRef.current.clientWidth;
-    const tableWidth = tableRef.current.scrollWidth;
-    const HYST = 2;
-    if (display === 'full' && tableWidth > containerWidth + HYST) setDisplay('compact');
-    else if (display === 'compact' && tableWidth > containerWidth + HYST) setDisplay('superCompact');
-    if (!isVisible) setIsVisible(true);
+    // If loading or there's an error, do nothing until that's resolved.
+    if (isLoading || error) return;
+
+    // If the table exists, measure it and adjust display if needed.
+    if (containerRef.current && tableRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      const tableWidth = tableRef.current.scrollWidth;
+      const HYST = 2; // Hysteresis to prevent flickering
+      if (display === 'full' && tableWidth > containerWidth + HYST) {
+        setDisplay('compact');
+      } else if (display === 'compact' && tableWidth > containerWidth + HYST) {
+        setDisplay('superCompact');
+      }
+    }
+    
+    // Always make the container visible once we are done loading,
+    // regardless of whether there's data or not.
+    if (!isVisible) {
+      setIsVisible(true);
+    }
   }, [display, isVisible, data, cols, isLoading, error]);
 
   useIsomorphicLayoutEffect(() => {
@@ -347,11 +389,39 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
 
     if (isInitialLoad) return <div className={styles.placeholder}><div className={styles.spinner} />{t('loading')}</div>;
     if (error) return <div className={styles.error}>{t('error')}: {error.message}</div>;
-    if (!data || data.length === 0) {
+
+    const unresolvedIds = [...unresolvedAbx, ...unresolvedOrg];
+    if (unresolvedIds.length > 0) {
       return (
         <div className={styles.noDataContainer}>
           <p><strong>{t('resistanceTable')}</strong></p>
-          <p>{t('noData')}</p>
+          <p>{t('unrecognizedIdentifiers')}:</p>
+          <ul className={styles.noDataList}>
+            {unresolvedIds.map(id => <li key={id}><code>{id}</code></li>)}
+          </ul>
+        </div>
+      );
+    }
+
+    if (!data || data.length === 0) {
+      // If no invalid IDs, it means the combination yielded no results.
+      const idToName = (id: string) => id2Main?.[id]?.[`name_${locale}`] || id;
+      const abxNames = antibioticIds.map(idToName);
+      const orgNames = organismIds.map(idToName);
+
+      return (
+        <div className={styles.noDataContainer}>
+          <p><strong>{t('resistanceTable')}</strong></p>
+          <p>{t('noDataForCombination')}:</p>
+          {abxNames.length > 0 && (
+            <p><strong>{t('antibiotics')}:</strong> {abxNames.join(', ')}</p>
+          )}
+          {orgNames.length > 0 && (
+            <p><strong>{t('organisms')}:</strong> {orgNames.join(', ')}</p>
+          )}
+           {abxNames.length === 0 && orgNames.length === 0 && (
+            <p>{t('noData')}</p>
+          )}
         </div>
       );
     }

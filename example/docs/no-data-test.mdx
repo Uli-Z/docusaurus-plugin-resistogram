@@ -1,0 +1,19 @@
+---
+title: No Data Test
+---
+
+This page tests the behavior of the ResistanceTable component when no data is available to be displayed.
+
+## Test Case 1: Invalid Parameters
+
+The following directive requests data for a non-existent organism. Since no organism ID matches, the resulting data set is empty, and the "no data" message should be displayed.
+
+%%RESIST org=NON_EXISTENT_ORGANISM%%
+
+---
+
+## Test Case 2: Valid Parameters, No Matching Data
+
+The following directive requests data for a valid organism and a valid antibiotic that exist in the database, but for which there are no corresponding resistance data points for their specific combination. This should also result in the "no data" message.
+
+%%RESIST org="E. coli" abx=FOS src=EUCAST%%
