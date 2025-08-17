@@ -12,6 +12,8 @@ const FILES_TO_DOWNLOAD = [
   'data_sources.csv',
   'resistance_ars_2023_extracted.csv',
   'eucast_expected_resistance.csv',
+  'antibiotic_classes.csv',
+  'organism_classes.csv',
 ];
 
 async function downloadFile(url, dest) {
