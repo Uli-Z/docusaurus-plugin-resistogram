@@ -63,13 +63,14 @@ export function getSharedData(
       .filter((r: any) => r.class_id)
       .map((r: any) => r.amr_code);
 
-      const sourcesById: Map<string, Source & { children: Source[] }> = new Map(
+      const sourcesById = buildSourceMap(sources);
+      const sourcesWithChildren: Map<string, Source & { children: Source[] }> = new Map(
         sources.map((s: Source) => [s.id, { ...s, children: [] as Source[] }]),
       );
       const hierarchicalSources: Source[] = [];
-      for (const source of sourcesById.values()) {
-        if (source.parent_id && sourcesById.has(source.parent_id)) {
-          const parent = sourcesById.get(source.parent_id)!;
+      for (const source of sourcesWithChildren.values()) {
+        if (source.parent_id && sourcesWithChildren.has(source.parent_id)) {
+          const parent = sourcesWithChildren.get(source.parent_id)!;
           parent.children.push(source);
         } else {
           hierarchicalSources.push(source);
@@ -80,6 +81,7 @@ export function getSharedData(
         abx,
         org,
         sources,
+        sourcesById,
         hierarchicalSources,
         abxSyn2Id,
         orgSyn2Id,
@@ -93,11 +95,14 @@ export function getSharedData(
 
 // --- Hierarchical Data Loading ---
 
+/** Build a map from source id to Source for quick lookup. */
+export const buildSourceMap = (sources: Source[]): Map<string, Source> =>
+  new Map(sources.map((s) => [s.id, s]));
+
 export const getPathToSource = (
-  sources: Source[],
+  sourcesById: Map<string, Source>,
   targetId: string,
 ): Source[] => {
-  const sourcesById = new Map(sources.map((s) => [s.id, s]));
   const path: Source[] = [];
   let currentId: string | undefined = targetId;
   while (currentId && sourcesById.has(currentId)) {
@@ -110,17 +115,17 @@ export const getPathToSource = (
 
 export const loadResistanceDataForSource = async (
   source: Source,
-  allSources: Source[],
+  sourcesById: Map<string, Source>,
   dataDir: string,
 ): Promise<any[]> => {
-  const path = getPathToSource(allSources, source.id);
+  const path = getPathToSource(sourcesById, source.id);
   if (path.length === 0) return [];
 
   const allDataFrames = await Promise.all(
     path.map((s) =>
-    loadCsv(dataDir, s.source_file).then((rows) =>
-    rows.map((row) => ({ ...row, source_id: s.id })),
-    ),
+      loadCsv(dataDir, s.source_file).then((rows: any[]) =>
+        rows.map((row: any) => ({ ...row, source_id: s.id })),
+      ),
     ),
   );
 

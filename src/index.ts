@@ -34,12 +34,12 @@ export default function docusaurusPluginResistogram(
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const { abx, org, sources, hierarchicalSources, allAbxIds } = await getSharedData(dataPath, files);
+      const { abx, org, sources, sourcesById, hierarchicalSources, allAbxIds } = await getSharedData(dataPath, files);
 
       // 1. Process and write resistance data for each source, using the new hierarchical loader
       const resistanceDataFileNames = new Map<string, string>();
       for (const source of sources) { // Iterate over the flat list to process all sources
-        const resistanceData = await loadResistanceDataForSource(source, sources, dataPath);
+        const resistanceData = await loadResistanceDataForSource(source, sourcesById, dataPath);
         if (resistanceData.length === 0) continue; // Skip empty sources
 
         const headers = Object.keys(resistanceData[0] || {});
