@@ -30,25 +30,6 @@ export const hl = { filter: 'brightness(90%)' } as const;
 // Data Processing functions
 // ============================================================================
 
-export const parseParams = (s: string): Record<string, string> =>
-  s
-    .trim()
-    .split(/\s+/)
-    .reduce((acc: Record<string, string>, part) => {
-      const [k, v] = part.split('=');
-      acc[k] = v;
-      return acc;
-    }, {});
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-export const escapeRegExp = (str: string): string =>
-  typeof RegExp.escape === 'function'
-    ? RegExp.escape(str)
-    : str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-
-
 export const buildMatrix = (
   rowIds: string[],
   colIds: string[],
