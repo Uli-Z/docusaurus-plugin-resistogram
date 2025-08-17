@@ -93,11 +93,14 @@ export function getSharedData(
 
 // --- Hierarchical Data Loading ---
 
+/** Build a map from source id to Source for quick lookup. */
+export const buildSourceMap = (sources: Source[]): Map<string, Source> =>
+  new Map(sources.map((s) => [s.id, s]));
+
 export const getPathToSource = (
-  sources: Source[],
+  sourcesById: Map<string, Source>,
   targetId: string,
 ): Source[] => {
-  const sourcesById = new Map(sources.map((s) => [s.id, s]));
   const path: Source[] = [];
   let currentId: string | undefined = targetId;
   while (currentId && sourcesById.has(currentId)) {
@@ -110,17 +113,17 @@ export const getPathToSource = (
 
 export const loadResistanceDataForSource = async (
   source: Source,
-  allSources: Source[],
+  sourcesById: Map<string, Source>,
   dataDir: string,
 ): Promise<any[]> => {
-  const path = getPathToSource(allSources, source.id);
+  const path = getPathToSource(sourcesById, source.id);
   if (path.length === 0) return [];
 
   const allDataFrames = await Promise.all(
     path.map((s) =>
-    loadCsv(dataDir, s.source_file).then((rows) =>
-    rows.map((row) => ({ ...row, source_id: s.id })),
-    ),
+      loadCsv(dataDir, s.source_file).then((rows: any[]) =>
+        rows.map((row: any) => ({ ...row, source_id: s.id })),
+      ),
     ),
   );
 
