@@ -14,7 +14,7 @@ exports[`SourceSwitcher Component renders a hierarchical structure correctly 1`]
 >
   <span>
     <span>
-      Gl
+      root
     </span>
     <svg
       aria-hidden={true}

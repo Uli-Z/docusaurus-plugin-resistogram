@@ -25,13 +25,21 @@ parse(txt, {
   },
 });
 
-const loadCsv = (dir: string, file: string) =>
-readFile(join(dir, file), "utf8")
-.then(CSV)
-.catch((err) => {
-  console.error(`Error loading CSV file: ${file} in ${dir}`, err);
-  return [];
-});
+const csvCache = new Map<string, Promise<any[]>>();
+
+const loadCsv = (dir: string, file: string) => {
+  const path = join(dir, file);
+  if (!csvCache.has(path)) {
+    const promise = readFile(path, "utf8")
+    .then(CSV)
+    .catch((err) => {
+      console.error(`Error loading CSV file: ${file} in ${dir}`, err);
+      return [];
+    });
+    csvCache.set(path, promise);
+  }
+  return csvCache.get(path)!;
+};
 
 let sharedDataPromise: Promise<any> | null = null;
 
@@ -112,12 +120,11 @@ export const loadResistanceDataForSource = async (
   const path = getPathToSource(allSources, source.id);
   if (path.length === 0) return [];
 
-  const allDataFrames = await Promise.all(
-    path.map((s) =>
-    loadCsv(dataDir, s.source_file).then((rows) =>
-    rows.map((row) => ({ ...row, source_id: s.id })),
-    ),
-    ),
+  const csvDataFrames = await Promise.all(
+    path.map((s) => loadCsv(dataDir, s.source_file)),
+  );
+  const allDataFrames = csvDataFrames.map((rows, idx) =>
+    rows.map((row) => ({ ...row, source_id: path[idx].id })),
   );
 
   const mergedData = new Map<string, any>();
