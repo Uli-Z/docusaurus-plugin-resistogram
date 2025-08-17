@@ -15,9 +15,9 @@ jest.mock('../src/theme/ResistanceTable/styles.module.css', () => ({
 describe('SourceSwitcher Component', () => {
   const mockHierarchicalSources: (Source & { children: Source[] })[] = [
     {
-      id: 'root', name_de: 'Global', source_file: 'root.csv', url: '', source_short_name_de: 'Gl', children: [
-        { id: 'child1', name_de: 'Germany', source_file: 'child1.csv', parent_id: 'root', url: '', source_short_name_de: 'DE', children: [] },
-        { id: 'child2', name_de: 'UK', source_file: 'child2.csv', parent_id: 'root', url: '', source_short_name_de: 'UK', children: [] },
+      id: 'root', name_de: 'Global', source_file: 'root.csv', url: '', source_short_name_de: 'Gl', year: 2024, children: [
+        { id: 'child1', name_de: 'Germany', source_file: 'child1.csv', parent_id: 'root', url: '', source_short_name_de: 'DE', year: 2023, children: [] },
+        { id: 'child2', name_de: 'UK', source_file: 'child2.csv', parent_id: 'root', url: '', source_short_name_de: 'UK', year: 2023, children: [] },
       ]
     },
   ];
@@ -29,6 +29,7 @@ describe('SourceSwitcher Component', () => {
         selected={mockHierarchicalSources[0]}
         onSelect={() => {}}
         styles={{}}
+        locale="en"
       />
     );
     let tree = component.toJSON();
