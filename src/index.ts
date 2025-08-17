@@ -9,6 +9,7 @@ interface Opts {
     antibiotics?: string;
     organisms?: string;
     sources?: string;
+    abxClasses?: string;
   };
 }
 
@@ -22,6 +23,7 @@ export default function docusaurusPluginResistogram(
     antibiotics: opts.files?.antibiotics ?? "antibiotics.csv",
     organisms: opts.files?.organisms ?? "organisms.csv",
     sources: opts.files?.sources ?? "data_sources.csv",
+    abxClasses: opts.files?.abxClasses ?? "antibiotic_classes.csv",
   };
   const dataPath = join(siteDir, dataDir);
   const pluginDataDir = join(
@@ -34,7 +36,7 @@ export default function docusaurusPluginResistogram(
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const { abx, org, sources, hierarchicalSources, allAbxIds, allAbxIds } = await getSharedData(dataPath, files);
+      const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds } = await getSharedData(dataPath, files);
 
       // 1. Process and write resistance data for each source, using the new hierarchical loader
       const resistanceDataFileNames = new Map<string, string>();

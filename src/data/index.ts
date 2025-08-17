@@ -5,9 +5,9 @@ import { Source } from "../types";
 
 export { Source };
 
-// ============================================================================
+// ============================================================================ 
 // Data Loading and Caching
-// ============================================================================
+// ============================================================================ 
 
 const CSV = (txt: string) =>
 parse(txt, {
@@ -43,16 +43,50 @@ const loadCsv = (dir: string, file: string) => {
 
 let sharedDataPromise: Promise<any> | null = null;
 
+const collectSynonyms = (row: any): string[] => {
+  const synonyms = new Set<string>();
+  const add = (s: string | undefined) => {
+    if (!s) return;
+    s.split(/[;,]/).forEach(part => {
+      const trimmed = part.trim();
+      if (trimmed) {
+        synonyms.add(trimmed);
+        const noDots = trimmed.replace(/\./g, "");
+        if (noDots !== trimmed) synonyms.add(noDots);
+      }
+    });
+  };
+
+  add(row.amr_code || row.id);
+  for (const key in row) {
+    if (
+      key.startsWith("synonyms_") ||
+      key.startsWith("full_name_") ||
+      key.startsWith("short_name_") ||
+      key.startsWith("name_") 
+    ) {
+      add(row[key]);
+    }
+  }
+  return Array.from(synonyms);
+};
+
 export function getSharedData(
   dir: string,
-  files: { antibiotics: string; organisms: string; sources: string },
+  files: {
+    antibiotics: string;
+    organisms: string;
+    sources: string;
+    abxClasses: string;
+  },
 ) {
   if (!sharedDataPromise) {
     sharedDataPromise = Promise.all([
       loadCsv(dir, files.antibiotics),
-                                    loadCsv(dir, files.organisms),
-                                    loadCsv(dir, files.sources),
-    ]).then(([abx, org, rawSources]) => {
+      loadCsv(dir, files.organisms),
+      loadCsv(dir, files.sources),
+      loadCsv(dir, files.abxClasses),
+    ]).then(([abx, org, rawSources, abxClasses]) => {
       const sources = rawSources.map((s: any) => ({
         ...s,
         url: s.source_url,
@@ -60,12 +94,39 @@ export function getSharedData(
 
       const abxSyn2Id = mkSynMap(abx);
       const orgSyn2Id = mkSynMap(org);
+
+      // --- Class Synonym Integration ---
+      const classToAbxMembers = abx.reduce((acc, antibiotic) => {
+        const classId = antibiotic.class;
+        if (classId) {
+          if (!acc.has(classId)) {
+            acc.set(classId, []);
+          }
+          acc.get(classId)!.push(antibiotic.amr_code);
+        }
+        return acc;
+      }, new Map<string, string[]>());
+
+      for (const abxClass of abxClasses) {
+        const classId = abxClass.id;
+        const members = classToAbxMembers.get(classId);
+        if (members && members.length > 0) {
+          const synonyms = collectSynonyms(abxClass);
+          for (const syn of synonyms) {
+            // When a class name is detected, we resolve it to all its member antibiotics.
+            // We join them by comma, as the resolver logic can handle comma-separated IDs.
+            abxSyn2Id.set(syn, members.join(','));
+          }
+        }
+      }
+      // --- End Class Synonym Integration ---
+
       const allAbxIds = abx
-      .filter((r: any) => r.class)
-      .map((r: any) => r.amr_code);
+        .filter((r: any) => r.class)
+        .map((r: any) => r.amr_code);
       const allOrgIds = org
-      .filter((r: any) => r.class_id)
-      .map((r: any) => r.amr_code);
+        .filter((r: any) => r.class_id)
+        .map((r: any) => r.amr_code);
 
       const sourcesById: Map<string, Source & { children: Source[] }> = new Map(
         sources.map((s: Source) => [s.id, { ...s, children: [] as Source[] }]),
@@ -138,23 +199,25 @@ export const loadResistanceDataForSource = async (
   return Array.from(mergedData.values());
 };
 
-// ============================================================================
+// ============================================================================ 
 // Data Processing / ID Resolution
-// ============================================================================
+// ============================================================================ 
 
 // util: minimal Markdown-Noise rauswerfen (ohne teuren Parser)
 const stripMarkdownLight = (s: string) =>
 s
 .replace(/`{1,3}[\s\S]*?`{1,3}/g, " ") // Inline/Block code
-.replace(/!\[[^\]]*\]\([^)]*\)/g, " ") // Images
-.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1") // Links -> Linktext
+.replace(/!\\\[[^\\]*\]\([^)]*\)/g, " ") // Images
+.replace(/\\[^\\]+\]\([^)]*\)/g, "$1") // Links -> Linktext
 .replace(/[*_~#>\/.,]+/g, " ") // Emphasis/Headings/Blockquotes/Punctuation
 .replace(/\s+/g, " ") // Whitespace normalisieren
 .trim();
 
 // util: sichere Regex-Escapes (korrekt ohne zusätzliche Leerzeichen)
-const esc = (s: string) =>
-s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const esc = (
+  s: string
+) =>
+s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&" );
 
 // util: baue ein robustes Pattern für einen Synonym-String
 const makeTokenRegex = (synRaw: string): RegExp | null => {
@@ -163,7 +226,7 @@ const makeTokenRegex = (synRaw: string): RegExp | null => {
 
   // Escape special characters, make dots optional and collapse whitespace.
   let core = syn
-  .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  .replace(/[.*+?^${}()|[\]\\]/g, "\\$&" )
   .replace(/\\\./g, "\\.?")
   .replace(/\s+/g, "\\s+");
 
@@ -233,30 +296,16 @@ export const selectDataSource = (
 };
 
 export const mkSynMap = (rows: any[]) =>
-rows.reduce<Map<string, string>>((m, r) => {
-  const add = (s: string) => {
-    if (!s) return;
-    const t = s.trim();
-    if (!t) return;
-    m.set(t, r.amr_code);
-    const noDots = t.replace(/\./g, "");
-    if (noDots !== t) m.set(noDots, r.amr_code);
-  };
-
-    // Process all relevant columns for synonyms and names
-    add(r.amr_code);
-    for (const key in r) {
-      if (
-        key.startsWith("synonyms_") ||
-        key.startsWith("full_name_") ||
-        key.startsWith("short_name_")
-      ) {
-        (r[key] ?? "").split(";").forEach(add);
-      }
+  rows.reduce<Map<string, string>>((m, r) => {
+    const id = r.amr_code || r.id;
+    if (!id) return m;
+    
+    const synonyms = collectSynonyms(r);
+    for (const syn of synonyms) {
+      m.set(syn, id);
     }
-
     return m;
-}, new Map());
+  }, new Map());
 
 const getLowerCaseSynMap = (() => {
   let cache: Map<string, string> | null = null;
@@ -282,45 +331,68 @@ export const resolveIds = (
   synMap: Map<string, string>,
   pageText: string,
 ): { resolved: string[]; unresolved: string[] } => {
-  const empty = { resolved: [], unresolved: [] };
+  if (!param) return { resolved: [], unresolved: [] };
 
-  if (!param || param === "auto") {
-    const detected = new Set<string>();
-    const text = stripMarkdownLight(pageText);
+  const resolved = new Set<string>();
+  const requestedTokens = param.split(",").map((t) => t.trim()).filter(Boolean);
+  const lowerCaseSynMap = getLowerCaseSynMap(synMap);
 
-    for (const [syn, id] of synMap.entries()) {
-      const rx = makeTokenRegex(syn);
-      if (!rx) continue;
-
-      if (rx.test(text)) detected.add(id);
-      else {
-        const synNoDots = syn.replace(/\./g, "");
-        if (synNoDots !== syn) {
-          const rx2 = makeTokenRegex(synNoDots);
-          if (rx2 && rx2.test(text)) detected.add(id);
+  // Step 1: Process all tokens and populate the resolved set
+  for (const token of requestedTokens) {
+    if (token === 'auto') {
+      const text = stripMarkdownLight(pageText);
+      for (const [syn, idOrIds] of synMap.entries()) {
+        const strippedSyn = stripMarkdownLight(syn);
+        const rx = makeTokenRegex(strippedSyn);
+        if (!rx) continue;
+        if (rx.test(text)) {
+          idOrIds.split(',').forEach(id => resolved.add(id));
+        } else {
+          const synNoDots = syn.replace(/\./g, "");
+          if (synNoDots !== syn) {
+            const strippedSynNoDots = stripMarkdownLight(synNoDots);
+            const rx2 = makeTokenRegex(strippedSynNoDots);
+            if (rx2 && rx2.test(text)) {
+              idOrIds.split(',').forEach(id => resolved.add(id));
+            }
+          }
         }
       }
-    }
-    return { resolved: [...detected], unresolved: [] };
-  }
-
-  if (param === "all") return { resolved: allIds, unresolved: [] };
-
-  const lowerCaseSynMap = getLowerCaseSynMap(synMap);
-  const requested = param.split(",").map((t) => t.trim());
-  
-  const resolved = new Set<string>();
-  const unresolved = new Set<string>();
-
-  for (const token of requested) {
-    const lowerToken = token.toLowerCase();
-    const id = lowerCaseSynMap.get(lowerToken) ?? token.toUpperCase();
-    if (allIds.includes(id)) {
-      resolved.add(id);
+    } else if (token === 'all') {
+      allIds.forEach(id => resolved.add(id));
     } else {
-      unresolved.add(token);
+      // Manual token
+      const lowerToken = token.toLowerCase();
+      const idOrIds = lowerCaseSynMap.get(lowerToken) ?? token.toUpperCase();
+      idOrIds.split(',').forEach(id => {
+        if (allIds.includes(id)) {
+          resolved.add(id);
+        }
+      });
     }
   }
 
-  return { resolved: Array.from(resolved), unresolved: Array.from(unresolved) };
+  // Step 2: Final check. If resolution is empty, the entire parameter is invalid.
+  if (resolved.size === 0) {
+    const unresolved = requestedTokens.filter(t => t !== 'all' && t !== 'auto');
+    // If only 'auto' was provided and it failed, make sure to report 'auto' as unresolved.
+    if (unresolved.length === 0 && requestedTokens.includes('auto')) {
+      unresolved.push('auto');
+    }
+    return { resolved: [], unresolved };
+  }
+
+  // Step 3: If resolution is successful, find any specific tokens that didn't resolve.
+  const finalResolved = Array.from(resolved);
+  const unresolved = requestedTokens.filter(token => {
+    if (token === 'auto' || token === 'all') return false;
+    
+    const lowerToken = token.toLowerCase();
+    const idOrIds = lowerCaseSynMap.get(lowerToken) ?? token.toUpperCase();
+    
+    // A token is unresolved if NONE of its potential IDs made it into the final resolved list.
+    return !idOrIds.split(',').some(id => finalResolved.includes(id));
+  });
+
+  return { resolved: finalResolved, unresolved };
 };
