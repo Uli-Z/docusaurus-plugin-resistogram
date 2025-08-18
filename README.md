@@ -9,8 +9,10 @@ This plugin scans your Markdown files for keywords and automatically displays re
 
 ## Features
 
-- **Automatic Detection:** Scans page content to automatically select relevant antibiotics and organisms.
+- **Automatic Detection:** Scans page content to automatically select relevant antibiotics, organisms, and even entire classes (e.g., "Cephalosporins", "gram-positive bacteria").
+- **Hierarchical Resolution:** Understands nested classifications of organisms and antibiotics.
 - **Customizable Display:** Use simple directives in your Markdown to control which data is shown.
+- **Automatic Sorting:** Organisms are automatically sorted by their taxonomic classification for clear and consistent presentation.
 - **Responsive Design:** The table adapts to different screen sizes for optimal viewing on any device.
 - **Simple Data Source:** Uses straightforward CSV files as the data source.
 
@@ -23,11 +25,13 @@ npm install docusaurus-plugin-resistogram
 ## Setup
 
 1.  **Create a data directory** in your Docusaurus project root (e.g., `data`).
-2.  **Add your data files** to this directory. You'll need three CSV files:
+2.  **Add your data files** to this directory. You'll need up to five CSV files:
 
-    - `antibiotics.csv`
-    - `organisms.csv`
-    - `resistance.csv`
+    - `antibiotics.csv` (required)
+    - `organisms.csv` (required)
+    - `resistance.csv` (required)
+    - `antibiotic_classes.csv` (optional, for grouping antibiotics)
+    - `organism_classes.csv` (optional, for grouping and sorting organisms)
 
 3.  **Configure the plugin** in your `docusaurus.config.ts`:
 
@@ -73,21 +77,21 @@ The `%%RESIST%%` directive accepts three space-separated parameters:
 
 Each parameter can take one of the following values:
 
-- `auto`: (Default) Automatically detects relevant IDs from the page content based on synonyms defined in your CSV files.
+- `auto`: (Default) Automatically detects relevant IDs from the page content based on synonyms defined in your CSV files. This includes individual items and class names.
 - `all`: Displays all available antibiotics or organisms.
-- **Comma-separated list:** A list of specific IDs from your CSV files (e.g., `abx=PEN,AMX,CIP`).
+- **Comma-separated list:** A list of specific IDs or class names/synonyms from your CSV files (e.g., `abx=PEN,Cephalosporins` or `org=B_STPHY_AURS,Enterobacterales`).
 
 **Example:**
 
 ```mdx
-<!-- Show resistance for Penicillin and Amoxicillin against all organisms -->
-%%RESIST abx=PEN,AMX org=all%%
+<!-- Show resistance for Penicillin and all Cephalosporins against all organisms -->
+%%RESIST abx=PEN,Cephalosporins org=all%%
 
-<!-- Automatically detect antibiotics, but only show E. coli and S. aureus -->
-%%RESIST abx=auto org=E_COLI,S_AUREUS%%
+<!-- Automatically detect organisms from the text, but only show data for Ciprofloxacin -->
+%%RESIST abx=CIP org=auto%%
 
-<!-- Show data for all antibiotics, but only from urine samples -->
-%%RESIST abx=all org=all specimen=urine%%
+<!-- Show data for all gram-positive bacteria -->
+%%RESIST abx=all org="gram-positive bacteria"%%
 ```
 
 ## Data File Structure
@@ -131,6 +135,34 @@ Your CSV files must follow a specific structure.
 - `n_isolates`: The number of isolates tested.
 - `resistance_pct`: The percentage of isolates that were resistant.
 - `specimen`: (Optional) The specimen type (e.g., `urine`, `blood`, `wound`).
+
+### `antibiotic_classes.csv` (Optional)
+
+This file defines classes for grouping antibiotics.
+
+| id    | name_en        | synonyms_en             |
+| ----- | -------------- | ----------------------- |
+| CEPH1 | Cephalosporins | Cephalosporin           |
+| PENI  | Penicillins    | Penicillin, Beta-lactam |
+
+- `id`: A unique identifier for the class (required).
+- `name_*`: The display name of the class in different languages.
+- `synonyms_*`: A comma-separated list of terms to search for.
+
+### `organism_classes.csv` (Optional)
+
+This file defines a potentially nested hierarchy for organisms.
+
+| id                  | parent_id | name_en                 | synonyms_en        |
+| ------------------- | --------- | ----------------------- | ------------------ |
+| bacteria            |           | Bacteria                |                    |
+| firmicutes          | bacteria  | Gram-positive bacteria  | Gram-positive      |
+| enterococcaceae     | firmicutes| Enterococcaceae         | Enterococci        |
+
+- `id`: A unique identifier for the class (required).
+- `parent_id`: The `id` of the parent class to create a hierarchy. Leave empty for top-level classes.
+- `name_*`: The display name of the class.
+- `synonyms_*`: A comma-separated list of terms to search for.
 
 ## License
 
