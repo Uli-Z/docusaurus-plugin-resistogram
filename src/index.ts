@@ -38,7 +38,7 @@ export default function docusaurusPluginResistogram(
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds, orgClasses } = await getSharedData(dataPath, files);
+      const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds, orgClasses, orgIdToRank } = await getSharedData(dataPath, files);
 
       // 1. Process and write resistance data for each source, using the new hierarchical loader
       const resistanceDataFileNames = new Map<string, string>();
@@ -80,13 +80,13 @@ export default function docusaurusPluginResistogram(
         ),
         classToAbx: Object.fromEntries(classToAbx),
         allAbxIds,
+        orgIdToRank,
       };
       writeJsonSync(join(pluginDataDir, sharedDataFileName), sharedData);
 
       // 3. Set global data, now with hierarchical sources
       const globalData = {
         sources: hierarchicalSources, // Pass the tree structure to the client
-        orgClasses,
         resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
         sharedDataFileName,
       };

@@ -97,6 +97,33 @@ export function getSharedData(
       const abxSyn2Id = mkSynMap(abx);
       const orgSyn2Id = mkSynMap(org);
 
+      // --- Organism Class Hierarchy and Rank Calculation ---
+      const orgClassesById = new Map(orgClasses.map((c: any) => [c.id, c]));
+      const orgClassChildren = new Map<string | undefined, any[]>();
+      for (const c of orgClasses) {
+        orgClassChildren.set(c.parent_id, [...(orgClassChildren.get(c.parent_id) || []), c]);
+      }
+
+      const classIdToRank = new Map<string, string>();
+      const traverse = (parentId: string | undefined, prefix: string) => {
+        const children = orgClassChildren.get(parentId) ?? [];
+        children.sort((a, b) => orgClasses.indexOf(a) - orgClasses.indexOf(b)); // Stable sort
+
+        children.forEach((child, index) => {
+          const rank = prefix ? `${prefix}.${(index + 1).toString().padStart(2, '0')}` : (index + 1).toString().padStart(2, '0');
+          classIdToRank.set(child.id, rank);
+          traverse(child.id, rank);
+        });
+      };
+      traverse(undefined, "");
+
+      const orgIdToRank = new Map<string, string>();
+      for (const organism of org) {
+        const rank = classIdToRank.get(organism.class_id) || "99";
+        orgIdToRank.set(organism.amr_code, rank);
+      }
+      // --- End Organism Class Hierarchy ---
+
       // --- Class Synonym Integration ---
       const classToAbxMembers = abx.reduce((acc, antibiotic) => {
         const classId = antibiotic.class;
@@ -122,6 +149,35 @@ export function getSharedData(
         }
       }
       // --- End Class Synonym Integration ---
+
+      // --- Organism Class Synonym Integration (Hierarchical) ---
+      const classToAllDescendantOrgs = new Map<string, string[]>();
+      const getDescendantOrgs = (classId: string): string[] => {
+        if (classToAllDescendantOrgs.has(classId)) return classToAllDescendantOrgs.get(classId)!;
+
+        const directOrgs = org.filter((o: any) => o.class_id === classId).map((o: any) => o.amr_code);
+        const childClasses = orgClassChildren.get(classId) ?? [];
+        const descendantOrgs = childClasses.flatMap(child => getDescendantOrgs(child.id));
+        
+        const allOrgs = [...new Set([...directOrgs, ...descendantOrgs])];
+        classToAllDescendantOrgs.set(classId, allOrgs);
+        return allOrgs;
+      };
+
+      for (const classId of orgClassesById.keys()) {
+        getDescendantOrgs(classId); // Pre-populate for all classes
+      }
+
+      for (const orgClass of orgClasses) {
+        const members = classToAllDescendantOrgs.get(orgClass.id);
+        if (members && members.length > 0) {
+          const synonyms = collectSynonyms(orgClass);
+          for (const syn of synonyms) {
+            orgSyn2Id.set(syn, members.join(','));
+          }
+        }
+      }
+      // --- End Organism Class Synonym Integration ---
 
       const allAbxIds = abx
         .filter((r: any) => r.class)
@@ -153,6 +209,7 @@ export function getSharedData(
         allAbxIds,
         allOrgIds,
         orgClasses,
+        orgIdToRank: Object.fromEntries(orgIdToRank),
       };
     });
   }
