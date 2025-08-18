@@ -406,6 +406,7 @@ export const resolveIds = (
         const rx = makeTokenRegex(strippedSyn);
         if (!rx) continue;
         if (rx.test(text)) {
+          console.log(`[DEBUG] Matched synonym: "${syn}" -> Resolves to IDs: "${idOrIds}"`);
           idOrIds.split(',').forEach(id => resolved.add(id));
         } else {
           const synNoDots = syn.replace(/\./g, "");
@@ -413,6 +414,7 @@ export const resolveIds = (
             const strippedSynNoDots = stripMarkdownLight(synNoDots);
             const rx2 = makeTokenRegex(strippedSynNoDots);
             if (rx2 && rx2.test(text)) {
+              console.log(`[DEBUG] Matched synonym (no dots): "${syn}" -> Resolves to IDs: "${idOrIds}"`);
               idOrIds.split(',').forEach(id => resolved.add(id));
             }
           }
