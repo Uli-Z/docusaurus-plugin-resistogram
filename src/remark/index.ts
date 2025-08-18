@@ -43,8 +43,8 @@ const parseParams = (s: string): Record<string, string> => {
   return params;
 };
 
-export default function remarkResistogram(options: { dataDir?: string, files?: any }) {
-  const { dataDir = "data", files = {} } = options;
+export default function remarkResistogram(options: { dataDir?: string, files?: any, pluginId?: string }) {
+  const { dataDir = "data", files = {}, pluginId = 'default' } = options;
 
   return async (tree: any, file: any) => {
     const pageText = mdastToPlainText(tree);
@@ -96,6 +96,7 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
           { type: "mdxJsxAttribute", name: "unresolvedAbx", value: JSON.stringify(unresolvedAbx) },
           { type: "mdxJsxAttribute", name: "unresolvedOrg", value: JSON.stringify(unresolvedOrg) },
           { type: "mdxJsxAttribute", name: "dataSourceId", value: selectedSource.id },
+          { type: "mdxJsxAttribute", name: "pluginId", value: pluginId },
           ...Object.entries(params).map(([key, value]) => ({
             type: "mdxJsxAttribute", name: key, value: value
           })),

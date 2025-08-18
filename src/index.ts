@@ -4,6 +4,7 @@ import { ensureDirSync, writeJsonSync, copySync } from "fs-extra";
 import { getSharedData, loadResistanceDataForSource } from "./data";
 
 interface Opts {
+  id?: string;
   dataDir?: string;
   files?: {
     antibiotics?: string;
@@ -28,9 +29,11 @@ export default function docusaurusPluginResistogram(
     orgClasses: opts.files?.orgClasses ?? "organism_classes.csv",
   };
   const dataPath = join(siteDir, dataDir);
+  const pluginId = opts.id ?? "default";
   const pluginDataDir = join(
     generatedFilesDir,
-    "docusaurus-plugin-resistogram"
+    "docusaurus-plugin-resistogram",
+    pluginId
   );
   ensureDirSync(pluginDataDir);
 
@@ -38,7 +41,7 @@ export default function docusaurusPluginResistogram(
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds, orgClasses, orgIdToRank } = await getSharedData(dataPath, files);
+      const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds, orgClasses, orgIdToRank, abxSyn2Id, orgSyn2Id } = await getSharedData(dataPath, files);
 
       // 1. Process and write resistance data for each source, using the new hierarchical loader
       const resistanceDataFileNames = new Map<string, string>();
@@ -80,7 +83,12 @@ export default function docusaurusPluginResistogram(
         ),
         classToAbx: Object.fromEntries(classToAbx),
         allAbxIds,
+        allOrgIds,
         orgIdToRank,
+        sources,
+        hierarchicalSources,
+        abxSyn2Id: Object.fromEntries(abxSyn2Id),
+        orgSyn2Id: Object.fromEntries(orgSyn2Id),
       };
       writeJsonSync(join(pluginDataDir, sharedDataFileName), sharedData);
 

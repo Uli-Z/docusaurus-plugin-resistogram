@@ -29,6 +29,7 @@ interface ResistanceTableProps {
   unresolvedAbx: string[];
   unresolvedOrg: string[];
   dataSourceId?: string;
+  pluginId: string;
   layout?: 'auto' | 'antibiotics-rows' | 'organisms-rows';
   showEmpty?: 'true' | 'false';
   locale?: Locale;
@@ -79,13 +80,14 @@ async function fetchResistanceData(path: string) {
 }
 
 
-export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds' | 'unresolvedAbx' | 'unresolvedOrg'> & { antibioticIds: string, organismIds: string, unresolvedAbx: string, unresolvedOrg: string, dataSourceId?: string, locale?: Locale, abx?: string, org?: string }) {
+export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds' | 'unresolvedAbx' | 'unresolvedOrg'> & { antibioticIds: string, organismIds: string, unresolvedAbx: string, unresolvedOrg: string, dataSourceId?: string, pluginId: string, locale?: Locale, abx?: string, org?: string }) {
   const {
     antibioticIds: antibioticIdsJson,
     organismIds: organismIdsJson,
     unresolvedAbx: unresolvedAbxJson,
     unresolvedOrg: unresolvedOrgJson,
     dataSourceId,
+    pluginId,
     layout = 'auto',
     showEmpty: showEmptyProp = 'false',
     locale: localeProp,
@@ -100,7 +102,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
 
   const { siteConfig, globalData, i18n } = useDocusaurusContext();
   const { baseUrl } = siteConfig;
-  const pluginData = globalData['docusaurus-plugin-resistogram']['example-resistogram'];
+  const pluginData = globalData['docusaurus-plugin-resistogram'][pluginId];
 
   const locale = localeProp || i18n.currentLocale as Locale;
   const t = useMemo(() => getTranslator(locale), [locale]);

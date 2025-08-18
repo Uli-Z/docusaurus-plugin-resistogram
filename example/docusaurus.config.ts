@@ -43,7 +43,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          remarkPlugins: [[remarkResistogram, { dataDir: 'data' }]],
+          remarkPlugins: [[remarkResistogram, { pluginId: 'example-resistogram', dataDir: 'data' }]],
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
