@@ -125,28 +125,25 @@ export function getSharedData(
       // --- End Organism Class Hierarchy ---
 
       // --- Class Synonym Integration ---
-      const classToAbxMembers = abx.reduce((acc, antibiotic) => {
-        const classId = antibiotic.class;
-        if (classId) {
-          if (!acc.has(classId)) {
-            acc.set(classId, []);
-          }
-          acc.get(classId)!.push(antibiotic.amr_code);
-        }
-        return acc;
-      }, new Map<string, string[]>());
+      const synonymToAllMembers = new Map<string, string[]>();
 
       for (const abxClass of abxClasses) {
         const classId = abxClass.id;
-        const members = classToAbxMembers.get(classId);
-        if (members && members.length > 0) {
+        const members = abx.filter((a: any) => a.class === classId).map((a: any) => a.amr_code);
+        
+        if (members.length > 0) {
           const synonyms = collectSynonyms(abxClass);
           for (const syn of synonyms) {
-            // When a class name is detected, we resolve it to all its member antibiotics.
-            // We join them by comma, as the resolver logic can handle comma-separated IDs.
-            abxSyn2Id.set(syn, members.join(','));
+            if (!synonymToAllMembers.has(syn)) {
+              synonymToAllMembers.set(syn, []);
+            }
+            synonymToAllMembers.get(syn)!.push(...members);
           }
         }
+      }
+
+      for (const [syn, members] of synonymToAllMembers.entries()) {
+        abxSyn2Id.set(syn, [...new Set(members)].join(','));
       }
       // --- End Class Synonym Integration ---
 
