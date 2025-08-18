@@ -99,13 +99,17 @@ export function getSharedData(
 
       // --- Organism Class Hierarchy and Rank Calculation ---
       const orgClassesById = new Map(orgClasses.map((c: any) => [c.id, c]));
-      const orgClassChildren = new Map<string | undefined, any[]>();
+      const orgClassChildren = new Map<string, any[]>();
       for (const c of orgClasses) {
-        orgClassChildren.set(c.parent_id, [...(orgClassChildren.get(c.parent_id) || []), c]);
+        const parentId = c.parent_id || ''; // Treat empty/undefined as root
+        if (!orgClassChildren.has(parentId)) {
+          orgClassChildren.set(parentId, []);
+        }
+        orgClassChildren.get(parentId)!.push(c);
       }
 
       const classIdToRank = new Map<string, string>();
-      const traverse = (parentId: string | undefined, prefix: string) => {
+      const traverse = (parentId: string, prefix: string) => {
         const children = orgClassChildren.get(parentId) ?? [];
         children.sort((a, b) => orgClasses.indexOf(a) - orgClasses.indexOf(b)); // Stable sort
 
@@ -115,7 +119,7 @@ export function getSharedData(
           traverse(child.id, rank);
         });
       };
-      traverse(undefined, "");
+      traverse('', ""); // Start traversal from the root
 
       const orgIdToRank = new Map<string, string>();
       for (const organism of org) {

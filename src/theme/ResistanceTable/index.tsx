@@ -172,25 +172,9 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     id2MainSyn: id2Main,
     id2ShortName: id2Short,
     allAbxIds,
-    allOrgIds,
+    orgIdToRank,
     classToAbx: classToAbxObj,
   } = sharedData || {};
-
-  const { invalidAbxIds, invalidOrgIds } = useMemo(() => {
-    const getInvalidIds = (param: string | undefined, allPossibleIds: string[] | undefined): string[] => {
-      if (!param || param === 'auto' || param === 'all' || !allPossibleIds) {
-        return [];
-      }
-      const requested = param.split(',').map(s => s.trim()).filter(Boolean);
-      // An ID is invalid if it was requested but is not in the master list of all possible IDs.
-      return requested.filter(id => !allPossibleIds.includes(id));
-    };
-
-    return {
-      invalidAbxIds: getInvalidIds(abxParam, allAbxIds),
-      invalidOrgIds: getInvalidIds(orgParam, allOrgIds),
-    };
-  }, [abxParam, orgParam, allAbxIds, allOrgIds]);
 
   const classToAbx = useMemo(
     () => new Map<string, string[]>(Object.entries(classToAbxObj ?? {})),
@@ -202,24 +186,33 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     [antibioticIds, allAbxIds, classToAbx],
   );
 
+  const sortedOrganismIds = useMemo(() => {
+    if (!orgIdToRank) return organismIds;
+    return [...organismIds].sort((a, b) => {
+      const rankA = orgIdToRank[a] || '99';
+      const rankB = orgIdToRank[b] || '99';
+      return rankA.localeCompare(rankB);
+    });
+  }, [organismIds, orgIdToRank]);
+
   const { rowIds, colIds, rowsAreAbx } = useMemo(() => {
     let rIds: string[] = sortedAbxIds;
-    let cIds: string[] = organismIds;
+    let cIds: string[] = sortedOrganismIds;
     let rAreAbx = true;
 
     if (layout === 'organisms-rows') {
-      rIds = organismIds;
+      rIds = sortedOrganismIds;
       cIds = sortedAbxIds;
       rAreAbx = false;
     } else if (layout === 'auto') {
-      if (organismIds.length > 4 && antibioticIds.length && organismIds.length / antibioticIds.length > 2) {
-        rIds = organismIds;
+      if (sortedOrganismIds.length > 4 && antibioticIds.length && sortedOrganismIds.length / antibioticIds.length > 2) {
+        rIds = sortedOrganismIds;
         cIds = sortedAbxIds;
         rAreAbx = false;
       }
     }
     return { rowIds: rIds, colIds: cIds, rowsAreAbx: rAreAbx };
-  }, [layout, sortedAbxIds, organismIds]);
+  }, [layout, sortedAbxIds, sortedOrganismIds]);
 
   const matrix = useMemo(
     () => buildMatrix(rowIds, colIds, rowsAreAbx, resistanceData ?? []),
