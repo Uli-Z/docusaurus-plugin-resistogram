@@ -65,6 +65,7 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
         organisms: files.organisms ?? "organisms.csv",
         sources: files.sources ?? "data_sources.csv",
         abxClasses: files.abxClasses ?? "antibiotic_classes.csv",
+        orgClasses: files.orgClasses ?? "organism_classes.csv",
     });
 
     let importAdded = false;

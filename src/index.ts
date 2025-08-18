@@ -10,6 +10,7 @@ interface Opts {
     organisms?: string;
     sources?: string;
     abxClasses?: string;
+    orgClasses?: string;
   };
 }
 
@@ -24,6 +25,7 @@ export default function docusaurusPluginResistogram(
     organisms: opts.files?.organisms ?? "organisms.csv",
     sources: opts.files?.sources ?? "data_sources.csv",
     abxClasses: opts.files?.abxClasses ?? "antibiotic_classes.csv",
+    orgClasses: opts.files?.orgClasses ?? "organism_classes.csv",
   };
   const dataPath = join(siteDir, dataDir);
   const pluginDataDir = join(
@@ -36,7 +38,7 @@ export default function docusaurusPluginResistogram(
     name: "docusaurus-plugin-resistogram",
 
     async contentLoaded({ actions }) {
-      const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds } = await getSharedData(dataPath, files);
+      const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds, orgClasses } = await getSharedData(dataPath, files);
 
       // 1. Process and write resistance data for each source, using the new hierarchical loader
       const resistanceDataFileNames = new Map<string, string>();
@@ -68,6 +70,8 @@ export default function docusaurusPluginResistogram(
 
       const sharedDataFileName = "shared-resistogram-data.json";
       const sharedData = {
+        abx,
+        org,
         id2MainSyn: Object.fromEntries(
           new Map([...abx, ...org].map((r: any) => [r.amr_code, { name_de: r.full_name_de, name_en: r.full_name_en }]))
         ),
@@ -82,6 +86,7 @@ export default function docusaurusPluginResistogram(
       // 3. Set global data, now with hierarchical sources
       const globalData = {
         sources: hierarchicalSources, // Pass the tree structure to the client
+        orgClasses,
         resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
         sharedDataFileName,
       };

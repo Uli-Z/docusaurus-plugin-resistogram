@@ -78,6 +78,7 @@ export function getSharedData(
     organisms: string;
     sources: string;
     abxClasses: string;
+    orgClasses: string;
   },
 ) {
   if (!sharedDataPromise) {
@@ -86,7 +87,8 @@ export function getSharedData(
       loadCsv(dir, files.organisms),
       loadCsv(dir, files.sources),
       loadCsv(dir, files.abxClasses),
-    ]).then(([abx, org, rawSources, abxClasses]) => {
+      loadCsv(dir, files.orgClasses),
+    ]).then(([abx, org, rawSources, abxClasses, orgClasses]) => {
       const sources = rawSources.map((s: any) => ({
         ...s,
         url: s.source_url,
@@ -150,6 +152,7 @@ export function getSharedData(
         orgSyn2Id,
         allAbxIds,
         allOrgIds,
+        orgClasses,
       };
     });
   }
