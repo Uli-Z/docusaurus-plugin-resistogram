@@ -1,0 +1,21 @@
+# Demo: Data Sources and Hierarchy
+
+This example demonstrates the use of the `source` parameter and the hierarchical data feature. The "German ARS 2023" source inherits data from the "EUCAST Expected" source.
+
+### EUCAST Expected Data
+
+```mdx
+%%RESIST org=B_ESCHR_COLI,B_PSDMN_AERG abx=PEN,AMP source=eucast-expected%%
+```
+
+%%RESIST org=B_ESCHR_COLI,B_PSDMN_AERG abx=PEN,AMP source=eucast-expected%%
+
+### German ARS 2023 Data
+
+This table uses the `de-ars-2023` source, which falls back to the EUCAST data for missing values.
+
+```mdx
+%%RESIST org=B_ESCHR_COLI,B_PSDMN_AERG abx=PEN,AMP source=de-ars-2023%%
+```
+
+%%RESIST org=B_ESCHR_COLI,B_PSDMN_AERG abx=PEN,AMP source=de-ars-2023%%

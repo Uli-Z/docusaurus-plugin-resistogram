@@ -345,6 +345,7 @@ export const selectDataSource = (
 
   const filteredSources = sources.filter(
     (s) =>
+    s.id.toLowerCase().includes(src.toLowerCase()) ||
     s.name_de.toLowerCase().includes(src.toLowerCase()) ||
     s.year.toString().includes(src),
   );

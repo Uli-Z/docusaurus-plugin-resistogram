@@ -1,0 +1,17 @@
+# Test Case: No Data Found
+
+This page demonstrates how the component behaves when the given parameters result in no matching resistance data.
+
+## Scenario
+
+We are requesting data for the organism *Streptococcus agalactiae*, which is also known by the synonym "Group B Streptococcus".
+
+While this organism and the antibiotic class "Penicillins" are valid, there is no corresponding resistance data for this specific combination within the selected `de-ars-2023` data source.
+
+The component should not crash or show an error. Instead, it should display a user-friendly message indicating that no data could be found for the specified selection.
+
+```mdx
+%%RESIST org="Group B Streptococcus" abx=Penicillins source=de-ars-2023%%
+```
+
+%%RESIST org="Group B Streptococcus" abx=Penicillins source=de-ars-2023%%

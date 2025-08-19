@@ -15,7 +15,8 @@ This plugin is designed for medical, veterinary, or scientific documentation sit
 - **Simple Content Integration:** Editors use a `%%RESIST%%` directive in their MDX files to insert a table.
 - **Content-based Data Selection (`auto` mode):** Scans the page's text to find synonyms for organisms and antibiotics, then automatically displays the relevant data. It excludes code blocks from the scan.
 - **Hierarchical Data Sources:** Define relationships between datasets. Data from a child source (e.g., national data) can override data from a parent source (e.g., global EUCAST data).
-- **Adaptive Table Layout:** The table adjusts its display mode (`full`, `compact`, `superCompact`) based on the available container width to ensure readability.
+- **Automatic Taxonomic Sorting:** Organisms are automatically sorted based on the hierarchy defined in `organism_classes.csv`, ensuring a logical and consistent presentation. Antibiotics are also sorted according to their class definitions.
+- **Adaptive Table Layout:** The table automatically adjusts its display mode (`full`, `compact`, `superCompact`) based on the available container width. In compact modes, it uses the abbreviated names defined in your data files to save space.
 - **Interactive UI:**
     - **Tooltips:** Provides details on hover for cells and headers.
     - **Highlighting:** Highlights corresponding rows and columns on hover.

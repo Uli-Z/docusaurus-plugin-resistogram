@@ -1,0 +1,15 @@
+# Test Case: Unresolved Identifiers
+
+This page demonstrates how the component handles invalid or non-existent IDs provided in the parameters.
+
+## Scenario
+
+We are requesting data for an organism with the ID `THIS_ID_DOES_NOT_EXIST` and an antibiotic class called `NonExistentClass`.
+
+The plugin cannot resolve these identifiers to any known organism or antibiotic in its data files. Instead of failing silently, the component should clearly inform the user which identifiers could not be resolved.
+
+```mdx
+%%RESIST org=THIS_ID_DOES_NOT_EXIST abx=NonExistentClass%%
+```
+
+%%RESIST org=THIS_ID_DOES_NOT_EXIST abx=NonExistentClass%%

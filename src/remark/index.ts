@@ -33,13 +33,39 @@ export function mdastToPlainText(root: any): string {
 
 const parseParams = (s: string): Record<string, string> => {
   const params: Record<string, string> = {};
-  const regex = /(\w+)=("([^"]*)"|'([^']*)'|(\S+))/g;
-  let match;
-  while ((match = regex.exec(s)) !== null) {
+  // This regex is designed to capture a key, and then the entire value until the next key.
+  const regex = /(\w+)=/g;
+  const matches = Array.from(s.matchAll(regex));
+
+  matches.forEach((match, i) => {
     const key = match[1];
-    const value = match[3] ?? match[4] ?? match[5];
-    params[key] = value;
-  }
+    const start = match.index! + match[0].length;
+    const nextMatch = matches[i + 1];
+    const end = nextMatch ? nextMatch.index : s.length;
+    const value = s.substring(start, end).trim();
+
+    // Now, clean the value. The goal is to get a simple comma-separated string.
+    // e.g., from '"S. aureus","S. epidermidis"' to 'S. aureus,S. epidermidis'
+    // e.g., from '"S. aureus,S. epidermidis"' to 'S. aureus,S. epidermidis'
+    const tokens = [];
+    // This regex finds quoted strings or unquoted chunks between commas.
+    const tokenRegex = /"([^"]*)"|'([^']*)'|([^,]+)/g;
+    let tokenMatch;
+    while ((tokenMatch = tokenRegex.exec(value)) !== null) {
+      // The matched value is in one of the capture groups.
+      const token = tokenMatch[1] ?? tokenMatch[2] ?? tokenMatch[3] ?? '';
+      tokens.push(token.trim());
+    }
+    
+    // If the regex didn't match (e.g., empty string), handle it gracefully.
+    if (tokens.length > 0) {
+      params[key] = tokens.join(',');
+    } else if (value) {
+      // Fallback for values that might not be captured by the regex but are not empty.
+      params[key] = value;
+    }
+  });
+
   return params;
 };
 
