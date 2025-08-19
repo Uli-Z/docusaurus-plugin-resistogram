@@ -2,16 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
 const { finished } = require('stream/promises');
+const { parse } = require('csv-parse/sync');
 
 const DATA_DIR = path.join(__dirname, '..', 'example', 'data');
 const BASE_URL = 'https://raw.githubusercontent.com/Uli-Z/dataset-antibiotic-resistance/main/';
 
-const FILES_TO_DOWNLOAD = [
+const STATIC_FILES = [
   'antibiotics.csv',
   'organisms.csv',
-  'data_sources.csv',
-  'resistance_ars_2023_extracted.csv',
-  'eucast_expected_resistance.csv',
   'antibiotic_classes.csv',
   'organism_classes.csv',
 ];
@@ -35,6 +33,21 @@ async function downloadFile(url, dest) {
   }
 }
 
+async function getResistanceFiles() {
+  const url = `${BASE_URL}data_sources.csv`;
+  const dest = path.join(DATA_DIR, 'data_sources.csv');
+  await downloadFile(url, dest);
+
+  const content = fs.readFileSync(dest, 'utf8');
+  const records = parse(content, {
+    columns: true,
+    skip_empty_lines: true,
+  });
+
+  const files = records.map((record) => record.source_file);
+  return ['data_sources.csv', ...files];
+}
+
 async function main() {
   // Check if data directory is empty or doesn't exist
   if (!fs.existsSync(DATA_DIR)) {
@@ -50,10 +63,19 @@ async function main() {
   console.log('Data directory is empty. Starting download of example data...');
 
   try {
-    for (const file of FILES_TO_DOWNLOAD) {
-      const url = `${BASE_URL}${file}`;
-      const dest = path.join(DATA_DIR, file);
-      await downloadFile(url, dest);
+    const resistanceFiles = await getResistanceFiles();
+    const allFiles = [...STATIC_FILES, ...resistanceFiles];
+    const uniqueFiles = [...new Set(allFiles)];
+
+    for (const file of uniqueFiles) {
+      if (file) {
+        const url = `${BASE_URL}${file}`;
+        const dest = path.join(DATA_DIR, file);
+        // Skip download if file already exists from getResistanceFiles()
+        if (!fs.existsSync(dest)) {
+          await downloadFile(url, dest);
+        }
+      }
     }
     console.log('All data files downloaded successfully.');
   } catch (error) {
