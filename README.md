@@ -7,6 +7,17 @@ A Docusaurus v3 plugin to display resistance data tables (resistograms) from CSV
 
 This plugin is designed for medical, veterinary, or scientific documentation sites. It allows content editors without programming knowledge to embed complex data visualizations into their content. The plugin handles data processing and rendering, providing an interactive table to the reader.
 
+## Motivation
+
+The core challenge in clinical practice is the recommendation to base antibiotic therapy on the local resistance situation. However, this data is often difficult to access and requires significant expertise to interpret.
+
+This plugin aims to solve that problem by:
+- **Making Data Accessible:** It directly integrates resistance statistics into the clinical workflow, making them available to clinicians at the point of care.
+- **Leveraging Modern Documentation:** Docusaurus serves as a modern, user-friendly platform, providing data without technical hurdles.
+- **Empowering Non-Technical Editors:** The content and data can be maintained by medical staff without requiring deep knowledge of computer science or data science.
+
+Ultimately, the goal is to bridge the gap between raw data and clinical decision-making.
+
 ![Screenshot of the ResistanceTable component](https://raw.githubusercontent.com/your-username/docusaurus-plugin-resistogram/main/screenshot.png)
 *(Add a screenshot of the component to the project and link it here)*
 
