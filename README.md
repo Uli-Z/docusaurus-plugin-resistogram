@@ -1,6 +1,6 @@
 # Docusaurus Resistogram Plugin
 
-[![NPM Version](https://img.shields.io/npm/v/docusaurus-plugin-resistogram?style=flat-square)](https://www.npmjs.com/package/docusaurus-plugin-resistogram)
+
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
 A Docusaurus v3 plugin to display resistance data tables (resistograms) from CSV files using a simple directive in your Markdown files.
@@ -18,8 +18,7 @@ This plugin aims to solve that problem by:
 
 Ultimately, the goal is to bridge the gap between raw data and clinical decision-making.
 
-![Screenshot of the ResistanceTable component](https://raw.githubusercontent.com/your-username/docusaurus-plugin-resistogram/main/screenshot.png)
-*(Add a screenshot of the component to the project and link it here)*
+![Screenshot of the ResistanceTable component](example/static/img/example-resistogram.png)
 
 ## Features
 
@@ -39,7 +38,7 @@ Ultimately, the goal is to bridge the gap between raw data and clinical decision
 ## Installation
 
 ```bash
-npm install docusaurus-plugin-resistogram
+npm install Uli-Z/docusaurus-plugin-resistogram
 ```
 
 ## Setup
