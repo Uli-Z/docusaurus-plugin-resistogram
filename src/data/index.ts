@@ -147,7 +147,9 @@ export function getSharedData(
       }
 
       for (const [syn, members] of synonymToAllMembers.entries()) {
-        abxSyn2Id.set(syn, [...new Set(members)].join(','));
+        const existingIds = abxSyn2Id.has(syn) ? abxSyn2Id.get(syn)!.split(',') : [];
+        const allIds = [...new Set([...existingIds, ...members])];
+        abxSyn2Id.set(syn, allIds.join(','));
       }
       // --- End Class Synonym Integration ---
 
