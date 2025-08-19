@@ -1,5 +1,6 @@
 # Docusaurus Resistogram Plugin
 
+**➡️ [Live Demo](https://uli-z.github.io/docusaurus-plugin-resistogram/) ⬅️**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
