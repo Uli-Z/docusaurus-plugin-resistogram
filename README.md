@@ -13,7 +13,7 @@ The core challenge in clinical practice is the recommendation to base antibiotic
 
 This plugin aims to solve that problem by:
 - **Making Data Accessible:** It directly integrates resistance statistics into the clinical workflow, making them available to clinicians at the point of care.
-- **Leveraging Modern Documentation:** Docusaurus serves as a modern, user-friendly platform, providing data without technical hurdles.
+- **Leveraging Modern Documentation:** Docusaurus serves as a modern, user-friendly platform. It builds a static HTML website that can be easily hosted on any web server. Furthermore, it can be configured to work as a Progressive Web App (PWA), making the information available offline and on any device. This is a powerful feature for delivering critical information to users, regardless of their location or network conditions.
 - **Empowering Non-Technical Editors:** The content and data can be maintained by medical staff without requiring deep knowledge of computer science or data science.
 
 Ultimately, the goal is to bridge the gap between raw data and clinical decision-making.
