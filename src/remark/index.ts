@@ -85,7 +85,7 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
       const params = parseParams(paramsStr);
       const { resolved: antibioticIds, unresolved: unresolvedAbx } = resolveIds(params.abx, sharedData.allAbxIds, sharedData.abxSyn2Id, pageText);
       const { resolved: organismIds, unresolved: unresolvedOrg } = resolveIds(params.org, sharedData.allOrgIds, sharedData.orgSyn2Id, pageText);
-      const selectedSource = selectDataSource(params.src, sharedData.sources);
+      const selectedSource = selectDataSource(params.source, sharedData.sources);
 
       const resistogramNode = {
         type: "mdxJsxFlowElement",
