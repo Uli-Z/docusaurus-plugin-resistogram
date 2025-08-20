@@ -99,7 +99,7 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
     for (let i = nodesToProcess.length - 1; i >= 0; i--) {
       const { node, index, parent } = nodesToProcess[i];
       const text = toString(node);
-      const regex = /%%RESIST\s*([^%]*)%%/g;
+      const regex = /%%RESIST\s*([^%]*)%%/;
       const match = text.match(regex);
 
       if (!match || match.index === undefined) continue;
