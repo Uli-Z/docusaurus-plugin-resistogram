@@ -6,19 +6,21 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.mjs"
     },
     "./remark": {
+      "types": "./dist/remark/index.d.ts",
       "import": "./dist/remark/index.mjs",
-      "types": "./dist/remark/index.d.ts"
+      "require": "./dist/remark/index.mjs"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/remark/index.ts --format esm --dts",
+    "build": "tsup src/index.ts src/remark/index.ts --format esm --dts && cp -r src/theme dist/",
     "dev": "tsup src/index.ts --watch",
     "prepare": "npm run build",
     "clean": "rm -rf dist",

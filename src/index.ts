@@ -1,4 +1,5 @@
-import type { LoadContext, Plugin } from "@docusaurus/types";
+import type { LoadContext, Plugin, Props } from "@docusaurus/types";
+import path from "path";
 import { join } from "path";
 import { ensureDirSync, writeJsonSync, copySync } from "fs-extra";
 import { getSharedData, loadResistanceDataForSource } from "./data";
@@ -40,7 +41,11 @@ export default function docusaurusPluginResistogram(
   return {
     name: "docusaurus-plugin-resistogram",
 
-    async contentLoaded({ actions }) {
+    getThemePath() {
+      return path.resolve(__dirname, "./theme");
+    },
+
+    async contentLoaded({ actions }: { actions: any }) {
       const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds, orgClasses, orgIdToRank, abxSyn2Id, orgSyn2Id } = await getSharedData(dataPath, files);
 
       // 1. Process and write resistance data for each source, using the new hierarchical loader
@@ -114,14 +119,10 @@ export default function docusaurusPluginResistogram(
       actions.setGlobalData(globalData);
     },
 
-    async postBuild({ outDir }) {
+    async postBuild({ outDir }: Props) {
       const destDir = join(outDir, "assets", "json");
       ensureDirSync(destDir);
       copySync(pluginDataDir, destDir);
-    },
-
-    getThemePath() {
-      return "./theme";
     },
   };
 }
