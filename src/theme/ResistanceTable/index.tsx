@@ -68,9 +68,23 @@ function decompressData(data: any[][]): any[] {
 
 async function fetchJson(path: string) {
   const response = await fetch(path);
+  const contentType = response.headers.get('content-type');
+
   if (!response.ok) {
-    throw new Error(`Network response was not ok: ${response.statusText}`);
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error(`Failed to fetch JSON from '${path}'. The server returned an HTML error page, which likely means the file was not found (404).`);
+    }
+    throw new Error(`Network response was not ok: ${response.statusText} for path '${path}'.`);
   }
+
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text();
+    if (text.trim().toLowerCase().startsWith('<!doctype html')) {
+      throw new Error(`Failed to fetch JSON from '${path}'. The server returned an HTML page instead of JSON. This likely means the file was not found and the server sent a fallback page.`);
+    }
+    throw new Error(`Expected JSON response from '${path}', but received content type '${contentType}'.`);
+  }
+
   return response.json();
 }
 
@@ -101,8 +115,8 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const unresolvedOrg = useMemo(() => JSON.parse(unresolvedOrgJson), [unresolvedOrgJson]);
 
   const { siteConfig, globalData, i18n } = useDocusaurusContext();
-  const { baseUrl } = siteConfig;
   const pluginData = globalData['docusaurus-plugin-resistogram'][pluginId];
+  const { dataUrl } = pluginData;
 
   const locale = localeProp || i18n.currentLocale as Locale;
   const t = useMemo(() => getTranslator(locale), [locale]);
@@ -127,9 +141,9 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<any>(null);
 
-  const sharedDataUrl = pluginData.sharedDataFileName ? `${baseUrl}assets/json/${pluginData.sharedDataFileName}` : null;
+  const sharedDataUrl = pluginData.sharedDataFileName ? `${dataUrl}/${pluginData.sharedDataFileName}` : null;
   const resistanceFileName = selectedSource ? pluginData.resistanceDataFileNames?.[selectedSource.id] : null;
-  const resistanceDataUrl = resistanceFileName ? `${baseUrl}assets/json/${resistanceFileName}` : null;
+  const resistanceDataUrl = resistanceFileName ? `${dataUrl}/${resistanceFileName}` : null;
 
   useEffect(() => {
     async function loadShared() {
@@ -162,7 +176,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
         const data = await fetchResistanceData(resistanceDataUrl);
         setResistanceData(data);
       } catch (e) {
-        setError(e);
+        setError(new Error(`Failed to fetch resistance data from ${resistanceDataUrl}: ${e.message}`));
       } finally {
         setIsLoading(false);
       }
@@ -269,8 +283,14 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   }, [selectedSource, flattendSources]);
 
   useIsomorphicLayoutEffect(() => {
-    // If loading or there's an error, do nothing until that's resolved.
-    if (isLoading || error) return;
+    // If loading, do nothing until that's resolved.
+    if (isLoading) return;
+
+    // If there's an error, we just want to make the container visible to show it.
+    if (error) {
+      if (!isVisible) setIsVisible(true);
+      return;
+    }
 
     // If the table exists, measure it and adjust display if needed.
     if (containerRef.current && tableRef.current) {
@@ -369,7 +389,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     const isInitialLoad = isLoading && (!data || data.length === 0);
 
     if (isInitialLoad) return <div className={styles.placeholder}><div className={styles.spinner} />{t('loading')}</div>;
-    if (error) return <div className={styles.error}>{t('error')}: {error.message}</div>;
+    if (error) return <div className={styles.error}>{t('generationFailed')}: {error.message}</div>;
 
     const unresolvedIds = [...unresolvedAbx, ...unresolvedOrg];
     if (unresolvedIds.length > 0) {
