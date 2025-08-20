@@ -13,6 +13,7 @@ interface Opts {
     sources?: string;
     abxClasses?: string;
     orgClasses?: string;
+    orgGroups?: string;
   };
 }
 

@@ -2,7 +2,7 @@ import {
   getSharedData,
   resolveIds,
   selectDataSource
-} from "../chunk-M23YCPVN.mjs";
+} from "../chunk-XMZM65T7.mjs";
 
 // src/remark/index.ts
 import { visit, SKIP } from "unist-util-visit";
@@ -113,7 +113,8 @@ function remarkResistogram(options) {
       organisms: files.organisms ?? "organisms.csv",
       sources: files.sources ?? "data_sources.csv",
       abxClasses: files.abxClasses ?? "antibiotic_classes.csv",
-      orgClasses: files.orgClasses ?? "organism_classes.csv"
+      orgClasses: files.orgClasses ?? "organism_classes.csv",
+      orgGroups: files.orgGroups ?? "organism_groups.csv"
     });
     let importAdded = false;
     for (let i = nodesToProcess.length - 1; i >= 0; i--) {

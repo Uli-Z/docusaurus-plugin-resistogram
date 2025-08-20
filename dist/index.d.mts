@@ -9,6 +9,7 @@ interface Opts {
         sources?: string;
         abxClasses?: string;
         orgClasses?: string;
+        orgGroups?: string;
     };
 }
 declare function docusaurusPluginResistogram(ctx: LoadContext, opts?: Opts): Plugin;

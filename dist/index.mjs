@@ -4,7 +4,7 @@ import {
   __toESM,
   getSharedData,
   loadResistanceDataForSource
-} from "./chunk-M23YCPVN.mjs";
+} from "./chunk-XMZM65T7.mjs";
 
 // node_modules/universalify/index.js
 var require_universalify = __commonJS({
@@ -2154,7 +2154,8 @@ function docusaurusPluginResistogram(ctx, opts = {}) {
     organisms: opts.files?.organisms ?? "organisms.csv",
     sources: opts.files?.sources ?? "data_sources.csv",
     abxClasses: opts.files?.abxClasses ?? "antibiotic_classes.csv",
-    orgClasses: opts.files?.orgClasses ?? "organism_classes.csv"
+    orgClasses: opts.files?.orgClasses ?? "organism_classes.csv",
+    orgGroups: opts.files?.orgGroups ?? "organism_groups.csv"
   };
   const dataPath = join(siteDir, dataDir);
   const pluginId = opts.id ?? "default";
