@@ -28,6 +28,7 @@ export default function docusaurusPluginResistogram(
     sources: opts.files?.sources ?? "data_sources.csv",
     abxClasses: opts.files?.abxClasses ?? "antibiotic_classes.csv",
     orgClasses: opts.files?.orgClasses ?? "organism_classes.csv",
+    orgGroups: opts.files?.orgGroups ?? "organism_groups.csv",
   };
   const dataPath = join(siteDir, dataDir);
   const pluginId = opts.id ?? "default";

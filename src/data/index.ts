@@ -79,6 +79,7 @@ export function getSharedData(
     sources: string;
     abxClasses: string;
     orgClasses: string;
+    orgGroups: string;
   },
 ) {
   if (!sharedDataPromise) {
@@ -88,7 +89,8 @@ export function getSharedData(
       loadCsv(dir, files.sources),
       loadCsv(dir, files.abxClasses),
       loadCsv(dir, files.orgClasses),
-    ]).then(([abx, org, rawSources, abxClasses, orgClasses]) => {
+      loadCsv(dir, files.orgGroups),
+    ]).then(([abx, org, rawSources, abxClasses, orgClasses, orgGroups]) => {
       const sources = rawSources.map((s: any) => ({
         ...s,
         url: s.source_url,
@@ -181,6 +183,34 @@ export function getSharedData(
         }
       }
       // --- End Organism Class Synonym Integration ---
+
+      // --- Organism Group Synonym Integration ---
+      const groupIdToOrgIds = new Map<string, string[]>();
+      for (const organism of org) {
+        const groupIdsStr = organism.groups;
+        if (groupIdsStr) {
+          const groupIds = groupIdsStr.split(';').map(id => id.trim()).filter(Boolean);
+          for (const groupId of groupIds) {
+            if (!groupIdToOrgIds.has(groupId)) {
+              groupIdToOrgIds.set(groupId, []);
+            }
+            groupIdToOrgIds.get(groupId)!.push(organism.amr_code);
+          }
+        }
+      }
+
+      for (const group of orgGroups) {
+        const members = groupIdToOrgIds.get(group.id);
+        if (members && members.length > 0) {
+          const synonyms = collectSynonyms(group);
+          for (const syn of synonyms) {
+            const existingIds = orgSyn2Id.has(syn) ? orgSyn2Id.get(syn)!.split(',') : [];
+            const allIds = [...new Set([...existingIds, ...members])];
+            orgSyn2Id.set(syn, allIds.join(','));
+          }
+        }
+      }
+      // --- End Organism Group Synonym Integration ---
 
       const allAbxIds = abx
         .filter((r: any) => r.class)
