@@ -59,6 +59,7 @@
     "@docusaurus/mdx-loader": "^3",
     "@docusaurus/types": "^3",
     "@playwright/test": "^1.54.2",
+    "@types/fs-extra": "^11.0.4",
     "fs-extra": "^11.3.0",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.0.5",
