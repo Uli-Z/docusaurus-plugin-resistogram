@@ -1,8 +1,10 @@
-# See https://docusaurus.io/docs/site-config#gitignore
-.docusaurus/
-.cache-loader/
-.swc/
-build/
-node_modules/
-# Custom
-data/
+# See https://docusaurus.io/docs/site-config#include--exclude
+# Files and directories to ignore from the build output.
+/build
+/docs/node_modules
+.docusaurus
+.cache-loader
+node_modules
+
+# Resistogram data generated in dev mode
+/static/resistogram-data

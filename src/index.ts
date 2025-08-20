@@ -92,11 +92,24 @@ export default function docusaurusPluginResistogram(
       };
       writeJsonSync(join(pluginDataDir, sharedDataFileName), sharedData);
 
-      // 3. Set global data, now with hierarchical sources
+      // 3. In dev mode, copy generated files to a static dir to be served
+      const isDev = process.env.NODE_ENV === 'development';
+      if (isDev) {
+        const staticDir = join(siteDir, 'static', 'resistogram-data', pluginId);
+        ensureDirSync(staticDir);
+        copySync(pluginDataDir, staticDir);
+      }
+
+      // 4. Set global data, now with hierarchical sources
+      const dataUrl = isDev 
+        ? join(ctx.baseUrl, 'resistogram-data', pluginId) 
+        : join(ctx.baseUrl, 'assets/json');
+
       const globalData = {
         sources: hierarchicalSources, // Pass the tree structure to the client
         resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
         sharedDataFileName,
+        dataUrl,
       };
       actions.setGlobalData(globalData);
     },
@@ -109,18 +122,6 @@ export default function docusaurusPluginResistogram(
 
     getThemePath() {
       return "./theme";
-    },
-
-    configureWebpack() {
-      return {
-        mergeStrategy: { "devServer.static": "append" },
-        devServer: {
-          static: {
-            directory: pluginDataDir,
-            publicPath: "/assets/json",
-          },
-        },
-      };
     },
   };
 }

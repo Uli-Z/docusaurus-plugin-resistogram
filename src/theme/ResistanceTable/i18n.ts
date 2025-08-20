@@ -47,6 +47,7 @@ export const translations = {
     pluginError: 'Docusaurus plugin data not found.',
     tooltipResistance: 'Resistance',
     tooltipNoData: 'No data available',
+    generationFailed: 'Resistogram could not be created. Error message',
   },
   fr: {
     loading: 'Chargement des données de résistance...',
