@@ -37,3 +37,11 @@ yarn-error.log*
 /example/build
 /example/.docusaurus
 /example/.cache
+example/data/antibiotic_classes.csv
+example/data/antibiotics.csv
+example/data/data_sources.csv
+example/data/eucast_expected_resistance.csv
+example/data/organism_classes.csv
+example/data/organisms.csv
+example/data/resistance_ars_2023_germany_all.csv
+example/data/resistance_ars_2023_germany_icu.csv
