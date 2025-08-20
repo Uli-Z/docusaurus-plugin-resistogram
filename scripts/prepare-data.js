@@ -12,6 +12,7 @@ const STATIC_FILES = [
   'organisms.csv',
   'antibiotic_classes.csv',
   'organism_classes.csv',
+  'organism_groups.csv',
 ];
 
 async function downloadFile(url, dest) {

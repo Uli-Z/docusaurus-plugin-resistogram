@@ -126,8 +126,10 @@ function remarkResistogram(options) {
       const afterText = text.slice(match.index + match[0].length).trim();
       const paramsStr = match[1];
       const params = parseParams(paramsStr);
-      const { resolved: antibioticIds, unresolved: unresolvedAbx } = resolveIds(params.abx, sharedData.allAbxIds, sharedData.abxSyn2Id, pageText);
-      const { resolved: organismIds, unresolved: unresolvedOrg } = resolveIds(params.org, sharedData.allOrgIds, sharedData.orgSyn2Id, pageText);
+      const abxParam = params.abx ?? "auto";
+      const orgParam = params.org ?? "auto";
+      const { resolved: antibioticIds, unresolved: unresolvedAbx } = resolveIds(abxParam, sharedData.allAbxIds, sharedData.abxSyn2Id, pageText);
+      const { resolved: organismIds, unresolved: unresolvedOrg } = resolveIds(orgParam, sharedData.allOrgIds, sharedData.orgSyn2Id, pageText);
       const selectedSource = selectDataSource(params.source, sharedData.sources);
       const resistogramNode = {
         type: "mdxJsxFlowElement",
