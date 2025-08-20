@@ -1,13 +1,12 @@
-
 export const translations = {
   de: {
-    loading: 'Lade Resistenzdaten...',
+    loading: 'Lade Resistenzdaten...', 
     error: 'Fehler',
     resistanceTable: 'Resistenz-Tabelle',
     noData: 'Keine passenden Resistenzdaten für die ausgewählten Kriterien in dieser Quelle gefunden.',
     unrecognizedIdentifiers: 'Die folgenden Bezeichner konnten nicht erkannt werden',
     noDataForCombination: 'Für die folgende Kombination konnten keine Daten gefunden werden',
-    hiddenInfo: (count: number, label: string, isPlural: boolean) => `${count} ${label}${isPlural ? '' : ''} ausgeblendet`,
+    hiddenInfo: (count, label, isPlural) => `${count} ${label}${isPlural ? '' : ''} ausgeblendet`,
     hiddenInfoAnd: 'und',
     hiddenInfoWithNoData: 'mit keinen Daten',
     hiddenInfoHidden: 'versteckt',
@@ -15,7 +14,7 @@ export const translations = {
     hide: 'ausblenden',
     source: 'Quelle',
     sources: 'Quellen',
-    calculatingLayout: 'Berechne Tabellen-Layout...',
+    calculatingLayout: 'Berechne Tabellen-Layout...', 
     antibiotic: 'Antibiotikum',
     antibiotics: 'Antibiotika',
     organism: 'Erreger',
@@ -31,7 +30,7 @@ export const translations = {
     noData: 'No matching resistance data found for the selected criteria in this source.',
     unrecognizedIdentifiers: 'The following identifiers could not be recognized',
     noDataForCombination: 'No data could be found for the following combination',
-    hiddenInfo: (count: number, label: string, isPlural: boolean) => `${count} ${label}${isPlural ? 's' : ''} hidden`,
+    hiddenInfo: (count, label, isPlural) => `${count} ${label}${isPlural ? 's' : ''} hidden`,
     hiddenInfoAnd: 'and',
     hiddenInfoWithNoData: 'with no data',
     hiddenInfoHidden: 'hidden',
@@ -39,7 +38,7 @@ export const translations = {
     hide: 'hide',
     source: 'Source',
     sources: 'Sources',
-    calculatingLayout: 'Calculating table layout...',
+    calculatingLayout: 'Calculating table layout...', 
     antibiotic: 'antibiotic',
     antibiotics: 'antibiotics',
     organism: 'organism',
@@ -56,7 +55,7 @@ export const translations = {
     noData: 'Aucune donnée de résistance correspondante trouvée pour les critères sélectionnés dans cette source.',
     unrecognizedIdentifiers: 'Les identifiants suivants n\'ont pas pu être reconnus',
     noDataForCombination: 'Aucune donnée n\'a été trouvée pour la combinaison suivante',
-    hiddenInfo: (count: number, label: string, isPlural: boolean) => `${count} ${label}${isPlural ? 's' : ''} masqué${isPlural ? 's' : ''}`,
+    hiddenInfo: (count, label, isPlural) => `${count} ${label}${isPlural ? 's' : ''} masqué${isPlural ? 's' : ''}`,
     hiddenInfoAnd: 'et',
     hiddenInfoWithNoData: 'sans données',
     hiddenInfoHidden: 'masqué',
@@ -64,7 +63,7 @@ export const translations = {
     hide: 'masquer',
     source: 'Source',
     sources: 'Sources',
-    calculatingLayout: 'Calcul de la mise en page du tableau...',
+    calculatingLayout: 'Calcul de la mise en page du tableau...', 
     antibiotic: 'antibiotique',
     antibiotics: 'antibiotiques',
     organism: 'organisme',
@@ -74,13 +73,13 @@ export const translations = {
     tooltipNoData: 'Aucune donnée disponible',
   },
   es: {
-    loading: 'Cargando datos de resistencia...',
+    loading: 'Cargando datos de resistencia...', 
     error: 'Error',
     resistanceTable: 'Tabla de resistencia',
     noData: 'No se encontraron datos de resistencia coincidentes para los criterios seleccionados en esta fuente.',
     unrecognizedIdentifiers: 'No se pudieron reconocer los siguientes identificadores',
     noDataForCombination: 'No se encontraron datos para la siguiente combinación',
-    hiddenInfo: (count: number, label: string, isPlural: boolean) => `${count} ${label}${isPlural ? 's' : ''} oculto${isPlural ? 's' : ''}`,
+    hiddenInfo: (count, label, isPlural) => `${count} ${label}${isPlural ? 's' : ''} oculto${isPlural ? 's' : ''}`,
     hiddenInfoAnd: 'y',
     hiddenInfoWithNoData: 'sin datos',
     hiddenInfoHidden: 'oculto',
@@ -88,7 +87,7 @@ export const translations = {
     hide: 'ocultar',
     source: 'Fuente',
     sources: 'Fuentes',
-    calculatingLayout: 'Calculando el diseño de la tabla...',
+    calculatingLayout: 'Calculando el diseño de la tabla...', 
     antibiotic: 'antibiótico',
     antibiotics: 'antibióticos',
     organism: 'organismo',
@@ -98,13 +97,13 @@ export const translations = {
     tooltipNoData: 'No hay datos disponibles',
   },
   it: {
-    loading: 'Caricamento dei dati sulla resistenza...',
+    loading: 'Caricamento dei dati sulla resistenza...', 
     error: 'Errore',
     resistanceTable: 'Tabella della resistenza',
     noData: 'Nessun dato sulla resistenza corrispondente trovato per i criteri selezionati in questa fonte.',
     unrecognizedIdentifiers: 'I seguenti identificatori non sono stati riconosciuti',
     noDataForCombination: 'Nessun dato trovato per la seguente combinazione',
-    hiddenInfo: (count: number, label: string, isPlural: boolean) => `${count} ${label}${isPlural ? 'i' : ''} nascost${isPlural ? 'i' : 'o'}`,
+    hiddenInfo: (count, label, isPlural) => `${count} ${label}${isPlural ? 'i' : ''} nascost${isPlural ? 'i' : 'o'}`,
     hiddenInfoAnd: 'e',
     hiddenInfoWithNoData: 'senza dati',
     hiddenInfoHidden: 'nascosto',
@@ -112,7 +111,7 @@ export const translations = {
     hide: 'nascondi',
     source: 'Fonte',
     sources: 'Fonti',
-    calculatingLayout: 'Calcolo del layout della tabella...',
+    calculatingLayout: 'Calcolo del layout della tabella...', 
     antibiotic: 'antibiotico',
     antibiotics: 'antibiotici',
     organism: 'organismo',
@@ -123,11 +122,9 @@ export const translations = {
   },
 };
 
-export type Locale = keyof typeof translations;
-
-export const getTranslator = (locale: Locale) => {
+export const getTranslator = (locale) => {
   const lang = translations[locale] || translations.en;
-  return (key: keyof typeof lang, ...args: any[]) => {
+  return (key, ...args) => {
     const value = lang[key];
     if (typeof value === 'function') {
       return value(...args);

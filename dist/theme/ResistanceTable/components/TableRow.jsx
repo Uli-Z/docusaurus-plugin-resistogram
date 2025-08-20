@@ -1,32 +1,6 @@
 import React from 'react';
 import { TableCell } from './TableCell';
 import { hl } from '../utils';
-import { getTranslator } from '../i18n';
-
-type Translator = ReturnType<typeof getTranslator>;
-
-// Mock types
-type FormattedRow = Record<string, any> & { rowLong: string; rowShort: string };
-type FormattedCol = { id: string; name: string; short: string };
-type DisplayMode = 'full' | 'compact' | 'superCompact';
-
-interface TableRowProps {
-  row: FormattedRow;
-  cols: FormattedCol[];
-  rowIndex: number;
-  displayMode: DisplayMode;
-  rowsAreAbx: boolean;
-  hoveredRow: number | null;
-  hoveredCol: number | null;
-  onSetHover: (row: number, col: number) => void;
-  onClearHover: () => void;
-  onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
-  onHideTooltip: () => void;
-  styles: any;
-  colorMode: 'dark' | 'light';
-  sourceId2ShortName: Map<string, string>;
-  t: Translator;
-}
 
 export const TableRow = React.memo(
   ({
@@ -45,11 +19,11 @@ export const TableRow = React.memo(
     colorMode,
     sourceId2ShortName,
     t,
-  }: TableRowProps) => {
+  }) => {
     const highlight = hoveredRow === rowIndex;
-    const abxCol = { whiteSpace: 'nowrap', width: '1%' } as const;
+    const abxCol = { whiteSpace: 'nowrap', width: '1%' };
 
-    const handleMouseEnter = (event: React.MouseEvent<HTMLTableCellElement>) => {
+    const handleMouseEnter = (event) => {
       onSetHover(rowIndex, -1); // Hover the whole row
       if (displayMode !== 'full') {
         onShowTooltip(row.rowLong, event.currentTarget);

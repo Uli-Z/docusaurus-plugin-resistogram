@@ -1,5 +1,3 @@
-import { Locale } from './i18n';
-
 /**
  * This file contains pure data processing functions that are not React components
  * and do not rely on React hooks.
@@ -9,21 +7,21 @@ import { Locale } from './i18n';
 // Styling Helpers
 // ============================================================================
 
-export const pctToColor = (pct: number, colorMode: 'dark' | 'light') => {
+export const pctToColor = (pct, colorMode) => {
   const hue = Math.round((1 - pct / 100) * 120);
   return colorMode === 'dark'
     ? `hsl(${hue},40%,30%)`
     : `hsl(${hue},60%,85%)`;
 };
 
-export const cellStyle = (pct: number | undefined, colorMode: 'dark' | 'light') => ({
+export const cellStyle = (pct, colorMode) => ({
   backgroundColor:
     pct === undefined
       ? 'var(--rt-empty-cell-background)'
       : pctToColor(pct, colorMode),
 });
 
-export const hl = { filter: 'brightness(90%)' } as const;
+export const hl = { filter: 'brightness(90%)' };
 
 
 // ============================================================================
@@ -31,12 +29,12 @@ export const hl = { filter: 'brightness(90%)' } as const;
 // ============================================================================
 
 export const buildMatrix = (
-  rowIds: string[],
-  colIds: string[],
-  rowsAreAbx: boolean,
-  resistanceData: any[],
+  rowIds,
+  colIds,
+  rowsAreAbx,
+  resistanceData,
 ) => {
-  const m = new Map<string, Map<string, any>>();
+  const m = new Map();
   rowIds.forEach((id) => m.set(id, new Map()));
   resistanceData
     .filter((r) => {
@@ -47,24 +45,24 @@ export const buildMatrix = (
     .forEach((r) => {
       const rowId = rowsAreAbx ? r.antibiotic_id : r.organism_id;
       const colId = rowsAreAbx ? r.organism_id : r.antibiotic_id;
-      m.get(rowId)!.set(colId, r);
+      m.get(rowId).set(colId, r);
     });
   return m;
 };
 
-const getLocalizedName = (id: string, names: Map<string, any>, locale: Locale) => {
+const getLocalizedName = (id, names, locale) => {
   const nameObj = names.get(id);
   if (!nameObj) return id;
   return nameObj[`name_${locale}`] || nameObj.name_en || id;
 };
 
 export const formatMatrix = (
-  matrix: Map<string, Map<string, any>>,
-  rowIds: string[],
-  colIds: string[],
-  id2Main: Map<string, any>,
-  id2Short: Map<string, any>,
-  locale: Locale,
+  matrix,
+  rowIds,
+  colIds,
+  id2Main,
+  id2Short,
+  locale,
 ) => {
   const cols = colIds.map((id) => ({
     id,
@@ -73,7 +71,7 @@ export const formatMatrix = (
   }));
 
   const data = rowIds.map((rowId) => {
-    const row: Record<string, any> = {
+    const row = {
       rowLong: getLocalizedName(rowId, id2Main, locale),
       rowShort: getLocalizedName(rowId, id2Short, locale) ?? getLocalizedName(rowId, id2Main, locale),
     };
@@ -89,13 +87,13 @@ export const formatMatrix = (
 };
 
 export const groupAndSortAntibiotics = (
-  idsToShow: string[],
-  allOriginalIds: string[],
-  classToAbx: Map<string, string[]>,
+  idsToShow,
+  allOriginalIds,
+  classToAbx,
 ) => {
-  const finalOrder: string[] = [];
+  const finalOrder = [];
   const idsToShowSet = new Set(idsToShow);
-  const processed = new Set<string>();
+  const processed = new Set();
 
   for (const id of allOriginalIds) {
     if (processed.has(id)) {

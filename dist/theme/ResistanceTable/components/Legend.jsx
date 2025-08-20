@@ -1,16 +1,10 @@
 import React from 'react';
 
 // Mock types
-type FormattedCol = { id: string; name: string; short: string };
-type DisplayMode = 'full' | 'compact' | 'superCompact';
+// Helper function to remove type annotations for JS conversion
+const identity = (props) => props;
 
-interface LegendProps {
-  cols: FormattedCol[];
-  displayMode: DisplayMode;
-  styles: any;
-}
-
-export const Legend = ({ cols, displayMode, styles }: LegendProps) => {
+export const Legend = ({ cols, displayMode, styles }) => {
   if (displayMode === 'full') return null;
 
   return (

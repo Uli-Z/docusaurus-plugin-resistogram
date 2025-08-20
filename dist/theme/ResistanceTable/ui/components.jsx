@@ -1,10 +1,6 @@
 import React from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
-import { Source } from '../../../types';
-import { Locale, getTranslator } from '../i18n';
-
-type Translator = ReturnType<typeof getTranslator>;
 
 // Recursive component to render the source tree
 const SourceMenuItem = ({
@@ -13,12 +9,6 @@ const SourceMenuItem = ({
   styles,
   level = 0,
   locale,
-}: {
-  source: Source & { children?: Source[] };
-  onSelect: (s: Source) => void;
-  styles: any;
-  level?: number;
-  locale: Locale;
 }) => (
   <>
     <DropdownMenu.Item
@@ -50,12 +40,6 @@ export const SourceSwitcher = ({
   onSelect,
   styles,
   locale,
-}: {
-  sources: (Source & { children?: Source[] })[];
-  selected: Source | null;
-  onSelect: (s: Source) => void;
-  styles: any;
-  locale: Locale;
 }) => {
   if (!sources || sources.length === 0) return null;
 
@@ -91,13 +75,6 @@ export const CellTooltipContent = ({
   rowsAreAbx,
   sourceName,
   t,
-}: {
-  row: any;
-  col: any;
-  cell: any;
-  rowsAreAbx: boolean;
-  sourceName?: string;
-  t: Translator;
 }) => {
   const rowLabel = rowsAreAbx ? t('antibiotic') : t('organism');
   const colLabel = rowsAreAbx ? t('organism') : t('antibiotic');

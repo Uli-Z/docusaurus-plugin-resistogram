@@ -12,35 +12,20 @@ import * as RadixTooltip from '@radix-ui/react-tooltip';
 import { SourceSwitcher } from './ui/components';
 import { TableHeader, TableBody, Legend } from './components';
 import styles from './styles.module.css';
-import { Source } from '../../../types';
 import { groupAndSortAntibiotics, buildMatrix, formatMatrix } from './utils';
-import { getTranslator, Locale } from './i18n';
+import { getTranslator } from './i18n';
 
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-const VirtualTrigger = React.forwardRef<HTMLSpanElement, {}>(function VirtualTrigger(props, ref) {
+const VirtualTrigger = React.forwardRef(function VirtualTrigger(props, ref) {
   return <span ref={ref} style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0 }} />;
 });
 
-interface ResistanceTableProps {
-  antibioticIds: string[];
-  organismIds: string[];
-  unresolvedAbx: string[];
-  unresolvedOrg: string[];
-  dataSourceId?: string;
-  pluginId: string;
-  layout?: 'auto' | 'antibiotics-rows' | 'organisms-rows';
-  showEmpty?: 'true' | 'false';
-  locale?: Locale;
-  abx?: string;
-  org?: string;
-}
-
 // Helper to flatten the hierarchical source structure
-const flattenSources = (sources: Source[]): Source[] => {
-  const allSources: Source[] = [];
-  const recurse = (sourceArray: Source[]) => {
+const flattenSources = (sources) => {
+  const allSources = [];
+  const recurse = (sourceArray) => {
     for (const source of sourceArray) {
       allSources.push(source);
       if (source.children) {
@@ -52,13 +37,13 @@ const flattenSources = (sources: Source[]): Source[] => {
   return allSources;
 };
 
-function decompressData(data: any[][]): any[] {
+function decompressData(data) {
   if (!data || data.length < 2) {
     return [];
   }
   const [headers, ...rows] = data;
   return rows.map((row) => {
-    const obj: { [key: string]: any } = {};
+    const obj = {};
     headers.forEach((header, i) => {
       obj[header] = row[i];
     });
@@ -66,7 +51,7 @@ function decompressData(data: any[][]): any[] {
   });
 }
 
-async function fetchJson(path: string) {
+async function fetchJson(path) {
   const response = await fetch(path);
   const contentType = response.headers.get('content-type');
 
@@ -88,13 +73,13 @@ async function fetchJson(path: string) {
   return response.json();
 }
 
-async function fetchResistanceData(path: string) {
+async function fetchResistanceData(path) {
   const compressedData = await fetchJson(path);
   return decompressData(compressedData);
 }
 
 
-export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antibioticIds' | 'organismIds' | 'unresolvedAbx' | 'unresolvedOrg'> & { antibioticIds: string, organismIds: string, unresolvedAbx: string, unresolvedOrg: string, dataSourceId?: string, pluginId: string, locale?: Locale, abx?: string, org?: string }) {
+export default function ResistanceTable(props) {
   const {
     antibioticIds: antibioticIdsJson,
     organismIds: organismIdsJson,
@@ -118,28 +103,28 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const pluginData = globalData['docusaurus-plugin-resistogram'][pluginId];
   const { dataUrl } = pluginData;
 
-  const locale = localeProp || i18n.currentLocale as Locale;
+  const locale = localeProp || i18n.currentLocale;
   const t = useMemo(() => getTranslator(locale), [locale]);
 
   const { colorMode } = useColorMode();
 
   const [showEmpty, setShowEmpty] = useState(showEmptyProp === 'true');
-  const [display, setDisplay] = useState<'full' | 'compact' | 'superCompact'>('full');
+  const [display, setDisplay] = useState('full');
   const [isVisible, setIsVisible] = useState(false);
-  const [hover, setHover] = useState<{ row: number | null; col: number | null }>({ row: null, col: null });
-  const [selectedSource, setSelectedSource] = useState<Source | null>(null);
+  const [hover, setHover] = useState({ row: null, col: null });
+  const [selectedSource, setSelectedSource] = useState(null);
 
-  const [tooltipContent, setTooltipContent] = useState<React.ReactNode>(null);
+  const [tooltipContent, setTooltipContent] = useState(null);
   const [tooltipOpen, setTooltipOpen] = useState(false);
-  const virtualTriggerRef = useRef<HTMLSpanElement>(null);
+  const virtualTriggerRef = useRef(null);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const tableRef = useRef<HTMLTableElement>(null);
+  const containerRef = useRef(null);
+  const tableRef = useRef(null);
 
-  const [sharedData, setSharedData] = useState<any | null>(null);
-  const [resistanceData, setResistanceData] = useState<any[] | null>(null);
+  const [sharedData, setSharedData] = useState(null);
+  const [resistanceData, setResistanceData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState(null);
 
   const sharedDataUrl = pluginData.sharedDataFileName ? `${dataUrl}/${pluginData.sharedDataFileName}` : null;
   const resistanceFileName = selectedSource ? pluginData.resistanceDataFileNames?.[selectedSource.id] : null;
@@ -193,7 +178,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   } = sharedData || {};
 
   const classToAbx = useMemo(
-    () => new Map<string, string[]>(Object.entries(classToAbxObj ?? {})),
+    () => new Map(Object.entries(classToAbxObj ?? {})),
     [classToAbxObj],
   );
 
@@ -212,8 +197,8 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   }, [organismIds, orgIdToRank]);
 
   const { rowIds, colIds, rowsAreAbx } = useMemo(() => {
-    let rIds: string[] = sortedAbxIds;
-    let cIds: string[] = sortedOrganismIds;
+    let rIds = sortedAbxIds;
+    let cIds = sortedOrganismIds;
     let rAreAbx = true;
 
     if (layout === 'organisms-rows') {
@@ -237,7 +222,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
 
   const { emptyRowIds, emptyColIds } = useMemo(() => {
     const emptyRows = new Set(rowIds.filter((id) => (matrix.get(id)?.size ?? 0) === 0));
-    const nonEmptyCols = new Set<string>();
+    const nonEmptyCols = new Set();
     matrix.forEach((colMap) => colMap.forEach((_v, cId) => nonEmptyCols.add(cId)));
     const emptyCols = new Set(colIds.filter((id) => !nonEmptyCols.has(id)));
     return { emptyRowIds: emptyRows, emptyColIds: emptyCols };
@@ -257,7 +242,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
   const flattendSources = useMemo(() => flattenSources(hierarchicalSources), [hierarchicalSources]);
 
   const sourceId2ShortName = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map();
     flattendSources.forEach(s => {
       const shortName = s[`source_short_name_${locale}`] || s[`name_${locale}`] || s.source_short_name_en || s.name_en || s.id;
       map.set(s.id, shortName);
@@ -269,8 +254,8 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     if (!selectedSource || flattendSources.length === 0) {
       return [];
     }
-    const chain: Source[] = [];
-    let currentSource: Source | undefined = selectedSource;
+    const chain = [];
+    let currentSource = selectedSource;
     while (currentSource) {
       chain.push(currentSource);
       if (currentSource.parent_id) {
@@ -344,7 +329,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     setIsVisible(false);
   }, [showEmptyProp]);
 
-  const showTooltip = useCallback((content: React.ReactNode, element: HTMLElement) => {
+  const showTooltip = useCallback((content, element) => {
     const timeoutId = setTimeout(() => {
       if (!virtualTriggerRef.current) return;
       const rect = element.getBoundingClientRect();
@@ -358,7 +343,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
 
   const hideTooltip = useCallback(() => setTooltipOpen(false), []);
 
-  const handleSetHover = useCallback((row: number, col: number) => setHover({ row, col }), []);
+  const handleSetHover = useCallback((row, col) => setHover({ row, col }), []);
   const handleClearHover = useCallback(() => setHover({ row: null, col: null }), []);
 
   const renderHiddenInfo = () => {
@@ -369,7 +354,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
     const rowLabel = rowsAreAbx ? t(hiddenRowCount > 1 ? 'antibiotics' : 'antibiotic') : t(hiddenRowCount > 1 ? 'organisms' : 'organism');
     const colLabel = rowsAreAbx ? t(hiddenColCount > 1 ? 'organisms' : 'organism') : t(hiddenColCount > 1 ? 'antibiotics' : 'antibiotic');
 
-    const parts: string[] = [];
+    const parts = [];
     if (hiddenRowCount) parts.push(`${hiddenRowCount} ${rowLabel}`);
     if (hiddenColCount) parts.push(`${hiddenColCount} ${colLabel}`);
 
@@ -406,7 +391,7 @@ export default function ResistanceTable(props: Omit<ResistanceTableProps, 'antib
 
     if (!data || data.length === 0) {
       // If no invalid IDs, it means the combination yielded no results.
-      const idToName = (id: string) => id2Main?.[id]?.[`name_${locale}`] || id;
+      const idToName = (id) => id2Main?.[id]?.[`name_${locale}`] || id;
       const abxNames = antibioticIds.map(idToName);
       const orgNames = organismIds.map(idToName);
 

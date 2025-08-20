@@ -6,12 +6,11 @@ import {
   formatMatrix,
   groupAndSortAntibiotics,
 } from '../utils';
-import { Source } from '../../../types';
 
 // Helper to recursively flatten the hierarchical sources for easy lookup
-const flattenSources = (sources: (Source & { children?: Source[] })[]): Source[] => {
-  const allSources: Source[] = [];
-  const recurse = (sourceList: (Source & { children?: Source[] })[]) => {
+const flattenSources = (sources) => {
+  const allSources = [];
+  const recurse = (sourceList) => {
     for (const source of sourceList) {
       allSources.push(source);
       if (source.children) {
@@ -24,13 +23,13 @@ const flattenSources = (sources: (Source & { children?: Source[] })[]): Source[]
 };
 
 
-function decompressData(data: any[][]): any[] {
+function decompressData(data) {
   if (!data || data.length < 2) {
     return [];
   }
   const [headers, ...rows] = data;
   return rows.map((row) => {
-    const obj: { [key: string]: any } = {};
+    const obj = {};
     headers.forEach((header, i) => {
       obj[header] = row[i];
     });
@@ -38,7 +37,7 @@ function decompressData(data: any[][]): any[] {
   });
 }
 
-async function fetchJson(path: string) {
+async function fetchJson(path) {
   const response = await fetch(path);
   if (!response.ok) {
     throw new Error(`Network response was not ok: ${response.statusText}`);
@@ -46,27 +45,27 @@ async function fetchJson(path: string) {
   return response.json();
 }
 
-async function fetchResistanceData(path: string) {
+async function fetchResistanceData(path) {
   const compressedData = await fetchJson(path);
   return decompressData(compressedData);
 }
 
 export function useResistanceTableData(
-  abxIds: string[],
-  orgIds: string[],
-  layout: string | undefined,
-  selectedSource: Source | null,
-  showEmpty: boolean,
+  abxIds,
+  orgIds,
+  layout,
+  selectedSource,
+  showEmpty,
 ) {
-  const pluginData: any = usePluginData(
+  const pluginData = usePluginData(
     'docusaurus-plugin-resistogram',
     'example-resistogram',
   );
 
-  const [sharedData, setSharedData] = useState<any | null>(null);
-  const [resistanceData, setResistanceData] = useState<any[] | null>(null);
+  const [sharedData, setSharedData] = useState(null);
+  const [resistanceData, setResistanceData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState(null);
 
   const sharedDataUrl = useBaseUrl(pluginData.sharedDataFileName ? `/assets/json/${pluginData.sharedDataFileName}` : null);
   const resistanceFileName = selectedSource ? pluginData.resistanceDataFileNames?.[selectedSource.id] : null;
@@ -123,7 +122,7 @@ export function useResistanceTableData(
   } = sharedData || {};
 
   const classToAbx = useMemo(
-    () => new Map<string, string[]>(Object.entries(classToAbxObj ?? {})),
+    () => new Map(Object.entries(classToAbxObj ?? {})),
     [classToAbxObj],
   );
 
@@ -133,8 +132,8 @@ export function useResistanceTableData(
   );
 
   const { rowIds, colIds, rowsAreAbx } = useMemo(() => {
-    let rIds: string[] = sortedAbxIds;
-    let cIds: string[] = orgIds;
+    let rIds = sortedAbxIds;
+    let cIds = orgIds;
     let rAreAbx = true;
 
     if (layout === 'organisms-rows') {
@@ -158,7 +157,7 @@ export function useResistanceTableData(
 
   const { emptyRowIds, emptyColIds } = useMemo(() => {
     const emptyRows = new Set(rowIds.filter((id) => (matrix.get(id)?.size ?? 0) === 0));
-    const nonEmptyCols = new Set<string>();
+    const nonEmptyCols = new Set();
     matrix.forEach((colMap) => colMap.forEach((_v, cId) => nonEmptyCols.add(cId)));
     const emptyCols = new Set(colIds.filter((id) => !nonEmptyCols.has(id)));
     return { emptyRowIds: emptyRows, emptyColIds: emptyCols };

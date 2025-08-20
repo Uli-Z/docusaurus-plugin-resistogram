@@ -1,30 +1,5 @@
 import React from 'react';
 import { TableRow } from './TableRow';
-import { getTranslator } from '../i18n';
-
-type Translator = ReturnType<typeof getTranslator>;
-
-// Mock types
-type FormattedRow = Record<string, any> & { rowLong: string; rowShort: string };
-type FormattedCol = { id: string; name: string; short: string };
-type DisplayMode = 'full' | 'compact' | 'superCompact';
-
-interface TableBodyProps {
-  data: FormattedRow[];
-  cols: FormattedCol[];
-  displayMode: DisplayMode;
-  rowsAreAbx: boolean;
-  hoveredRow: number | null;
-  hoveredCol: number | null;
-  onSetHover: (row: number, col: number) => void;
-  onClearHover: () => void;
-  onShowTooltip: (content: React.ReactNode, element: HTMLElement) => void;
-  onHideTooltip: () => void;
-  styles: any;
-  colorMode: 'dark' | 'light';
-  sourceId2ShortName: Map<string, string>;
-  t: Translator;
-}
 
 export const TableBody = ({
   data,
@@ -41,7 +16,7 @@ export const TableBody = ({
   colorMode,
   sourceId2ShortName,
   t,
-}: TableBodyProps) => {
+}) => {
   return (
     <tbody>
       {data.map((row, rowIndex) => (
