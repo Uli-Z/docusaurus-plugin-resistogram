@@ -119,7 +119,7 @@ function remarkResistogram(options) {
     for (let i = nodesToProcess.length - 1; i >= 0; i--) {
       const { node: node2, index, parent } = nodesToProcess[i];
       const text = toString(node2);
-      const regex = /%%RESIST\s+([^%]*)%%/;
+      const regex = /%%RESIST\s*([^%]*)%%/g;
       const match = text.match(regex);
       if (!match || match.index === void 0) continue;
       const beforeText = text.slice(0, match.index).trim();
