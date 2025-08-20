@@ -1,4 +1,4 @@
-import { visit } from "unist-util-visit";
+import { visit, SKIP } from "unist-util-visit";
 import { toString } from "mdast-util-to-string";
 import { getSharedData, resolveIds, selectDataSource } from "../data";
 import { join } from "path";
@@ -14,10 +14,10 @@ export function mdastToPlainText(root: any): string {
 
   visit(root, (node) => {
     if (node.type === "code" || node.type === "inlineCode") {
-      return visit.SKIP;
+      return SKIP;
     }
     if (node.type === "paragraph" && /%%RESIST/.test(toString(node))) {
-       return visit.SKIP;
+       return SKIP;
     }
     if (node.type === "text") {
       push(node.value as string);
@@ -76,7 +76,7 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
     const pageText = mdastToPlainText(tree);
     const nodesToProcess: any[] = [];
 
-    visit(tree, "paragraph", (node: any, index: number, parent: any) => {
+    visit(tree, "paragraph", (node: any, index: number | undefined, parent: any) => {
       if (toString(node).includes("%%RESIST")) {
         nodesToProcess.push({ node, index, parent });
       }
@@ -102,7 +102,7 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
       const regex = /%%RESIST\s+([^%]*)%%/;
       const match = text.match(regex);
 
-      if (!match) continue;
+      if (!match || match.index === undefined) continue;
 
       const beforeText = text.slice(0, match.index).trim();
       const afterText = text.slice(match.index + match[0].length).trim();
@@ -140,7 +140,7 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
         newNodes.push({ type: 'paragraph', children: [{ type: 'text', value: afterText }] });
       }
 
-      if (newNodes.length > 0) {
+      if (newNodes.length > 0 && index !== undefined) {
         parent.children.splice(index, 1, ...newNodes);
       }
     }
@@ -156,5 +156,3 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
     return tree;
   };
 }
-
-
