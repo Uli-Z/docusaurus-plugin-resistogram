@@ -51,7 +51,7 @@ export default function docusaurusPluginResistogram(
       const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds, orgClasses, orgIdToRank, abxSyn2Id, orgSyn2Id } = await getSharedData(dataPath, files);
 
       const resistanceDataFileNames = new Map<string, string>();
-      const allResistanceData = {}; 
+      const allResistanceData: { [key: string]: any[] } = {}; 
 
       for (const source of sources) {
         const resistanceData = await loadResistanceDataForSource(source, sources, dataPath);
