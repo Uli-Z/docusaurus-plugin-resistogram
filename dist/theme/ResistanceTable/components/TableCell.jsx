@@ -54,7 +54,7 @@ export const TableCell = React.memo(
         onClick={handleMouseEnter}
       >
         <span className={styles.fullCellTrigger}>
-          {cell ? `${cell.pct}%` : '—'}
+          {cell ? cell.displayText : '—'}
         </span>
       </td>
     );

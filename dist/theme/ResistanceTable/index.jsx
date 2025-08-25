@@ -100,8 +100,8 @@ export default function ResistanceTable(props) {
   const unresolvedOrg = useMemo(() => JSON.parse(unresolvedOrgJson), [unresolvedOrgJson]);
 
   const { siteConfig, globalData, i18n } = useDocusaurusContext();
-  const pluginData = globalData['docusaurus-plugin-resistogram'][pluginId];
-  const { dataUrl } = pluginData;
+  const pluginGlobalData = globalData['docusaurus-plugin-resistogram'][pluginId];
+  const { dataUrl, ssr: preloadedData } = pluginGlobalData;
 
   const locale = localeProp || i18n.currentLocale;
   const t = useMemo(() => getTranslator(locale), [locale]);
@@ -110,9 +110,26 @@ export default function ResistanceTable(props) {
 
   const [showEmpty, setShowEmpty] = useState(showEmptyProp === 'true');
   const [display, setDisplay] = useState('full');
-  const [isVisible, setIsVisible] = useState(false);
   const [hover, setHover] = useState({ row: null, col: null });
-  const [selectedSource, setSelectedSource] = useState(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // This effect runs only on the client, after initial hydration.
+  // It triggers a re-render, allowing layout effects to run with correct browser measurements.
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const hierarchicalSources = pluginGlobalData?.sources ?? [];
+  const flattendSources = useMemo(() => flattenSources(hierarchicalSources), [hierarchicalSources]);
+
+  // Initialize the selected source based on props or the first available source.
+  // This is done directly in useState to prevent re-calculation on every render.
+  const [selectedSource, setSelectedSource] = useState(() => {
+    if (flattendSources.length === 0) return null;
+    return dataSourceId
+      ? flattendSources.find(s => s.id === dataSourceId) ?? flattendSources[0]
+      : flattendSources[0];
+  });
 
   const [tooltipContent, setTooltipContent] = useState(null);
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -121,23 +138,35 @@ export default function ResistanceTable(props) {
   const containerRef = useRef(null);
   const tableRef = useRef(null);
 
-  const [sharedData, setSharedData] = useState(null);
-  const [resistanceData, setResistanceData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // --- Data Initialization with SSR ---
+  // This function retrieves the initial resistance data from the preloaded SSR data.
+  const getInitialResistanceData = useCallback((source) => {
+    if (!source || !preloadedData?.resistanceData) return null;
+    return preloadedData.resistanceData[source.id] ?? null;
+  }, [preloadedData]);
 
-  const sharedDataUrl = pluginData.sharedDataFileName ? `${dataUrl}/${pluginData.sharedDataFileName}` : null;
-  const resistanceFileName = selectedSource ? pluginData.resistanceDataFileNames?.[selectedSource.id] : null;
+  // Initialize state with server-side rendered data if available.
+  // This ensures the component renders identically on the server and for the first client render.
+  const [sharedData, setSharedData] = useState(preloadedData?.sharedData ?? null);
+  const [resistanceData, setResistanceData] = useState(() => getInitialResistanceData(selectedSource));
+  const [isLoading, setIsLoading] = useState(!resistanceData); // Only show loading spinner if data wasn't preloaded.
+  const [error, setError] = useState(null);
+  // --- End Data Initialization ---
+
+  const resistanceFileName = selectedSource ? pluginGlobalData.resistanceDataFileNames?.[selectedSource.id] : null;
   const resistanceDataUrl = resistanceFileName ? `${dataUrl}/${resistanceFileName}` : null;
 
+  // Effect to fetch shared data on the client ONLY if it wasn't available from SSR.
   useEffect(() => {
     async function loadShared() {
-      if (!sharedDataUrl) {
+      if (sharedData) return; 
+      if (!pluginGlobalData.sharedDataFileName) {
         setError(new Error("Plugin data not found."));
         setIsLoading(false);
         return;
       }
       try {
+        const sharedDataUrl = `${dataUrl}/${pluginGlobalData.sharedDataFileName}`;
         const data = await fetchJson(sharedDataUrl);
         setSharedData(data);
       } catch (e) {
@@ -146,11 +175,19 @@ export default function ResistanceTable(props) {
       }
     }
     loadShared();
-  }, [sharedDataUrl]);
+  }, [sharedData, pluginGlobalData, dataUrl]);
 
+  // Effect to fetch new resistance data when the user selects a different source.
   useEffect(() => {
+    // Don't fetch data for the initial source that was already rendered on the server.
+    const initialData = getInitialResistanceData(selectedSource);
+    if (initialData && JSON.stringify(resistanceData) === JSON.stringify(initialData)) {
+      setIsLoading(false);
+      return;
+    }
+
     async function loadResistance() {
-      if (!sharedData) return;
+      if (!sharedData) return; // Wait for shared data to be available.
       if (!resistanceDataUrl || !selectedSource) {
         setResistanceData(null);
         setIsLoading(false);
@@ -238,9 +275,6 @@ export default function ResistanceTable(props) {
     [matrix, finalRowIds, finalColIds, id2Main, id2Short, locale],
   );
   
-  const hierarchicalSources = pluginData?.sources ?? [];
-  const flattendSources = useMemo(() => flattenSources(hierarchicalSources), [hierarchicalSources]);
-
   const sourceId2ShortName = useMemo(() => {
     const map = new Map();
     flattendSources.forEach(s => {
@@ -268,33 +302,19 @@ export default function ResistanceTable(props) {
   }, [selectedSource, flattendSources]);
 
   useIsomorphicLayoutEffect(() => {
-    // If loading, do nothing until that's resolved.
-    if (isLoading) return;
+    // On the client, after the isClient state is set, this effect will re-run.
+    // This ensures that measurements are taken after the browser has finalized its layout.
+    if (isLoading || error || !containerRef.current || !tableRef.current) return;
 
-    // If there's an error, we just want to make the container visible to show it.
-    if (error) {
-      if (!isVisible) setIsVisible(true);
-      return;
+    const containerWidth = containerRef.current.clientWidth;
+    const tableWidth = tableRef.current.scrollWidth;
+    const HYST = 2; // Hysteresis to prevent flickering
+    if (display === 'full' && tableWidth > containerWidth + HYST) {
+      setDisplay('compact');
+    } else if (display === 'compact' && tableWidth > containerWidth + HYST) {
+      setDisplay('superCompact');
     }
-
-    // If the table exists, measure it and adjust display if needed.
-    if (containerRef.current && tableRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      const tableWidth = tableRef.current.scrollWidth;
-      const HYST = 2; // Hysteresis to prevent flickering
-      if (display === 'full' && tableWidth > containerWidth + HYST) {
-        setDisplay('compact');
-      } else if (display === 'compact' && tableWidth > containerWidth + HYST) {
-        setDisplay('superCompact');
-      }
-    }
-    
-    // Always make the container visible once we are done loading,
-    // regardless of whether there's data or not.
-    if (!isVisible) {
-      setIsVisible(true);
-    }
-  }, [display, isVisible, data, cols, isLoading, error]);
+  }, [display, data, cols, isLoading, error, isClient]);
 
   useIsomorphicLayoutEffect(() => {
     if (!containerRef.current) return;
@@ -304,7 +324,6 @@ export default function ResistanceTable(props) {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         setDisplay('full');
-        setIsVisible(false);
       });
     });
     ro.observe(node, { box: 'content-box' });
@@ -315,18 +334,9 @@ export default function ResistanceTable(props) {
   }, []);
 
   useEffect(() => {
-    if (flattendSources.length > 0) {
-      const initialSource = dataSourceId
-        ? flattendSources.find(s => s.id === dataSourceId)
-        : flattendSources[0];
-      setSelectedSource(initialSource || flattendSources[0]);
-    }
-  }, [flattendSources, dataSourceId]);
-
-  useEffect(() => {
-    setShowEmpty(showEmptyProp === 'true');
+    // When the showEmpty prop changes, reset the display to 'full'
+    // to allow the table to re-measure its layout.
     setDisplay('full');
-    setIsVisible(false);
   }, [showEmptyProp]);
 
   const showTooltip = useCallback((content, element) => {
@@ -447,11 +457,11 @@ export default function ResistanceTable(props) {
     );
   };
 
-  if (!pluginData) return <div className={styles.error}>{t('error')}: {t('pluginError')}</div>;
+  if (!pluginGlobalData) return <div className={styles.error}>{t('error')}: {t('pluginError')}</div>;
 
   return (
     <RadixTooltip.Provider>
-      <div ref={containerRef} style={{ visibility: isVisible ? 'visible' : 'hidden', minHeight: '150px' }}>
+      <div ref={containerRef} style={{ minHeight: '150px' }}>
         <div className={styles.rootContainer}>
           {hierarchicalSources.length > 0 && (
             <SourceSwitcher {...{ sources: hierarchicalSources, selected: selectedSource, onSelect: setSelectedSource, styles, locale }} />
@@ -460,7 +470,6 @@ export default function ResistanceTable(props) {
             {renderContent()}
           </div>
         </div>
-        {!isVisible && !isLoading && <div className={styles.placeholder}>{t('calculatingLayout')}</div>}
       </div>
 
       <RadixTooltip.Root open={tooltipOpen} onOpenChange={setTooltipOpen}>

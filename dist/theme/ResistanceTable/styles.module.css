@@ -112,10 +112,57 @@
   padding: 0.5rem 1rem;
   cursor: pointer;
   color: var(--rt-text-color);
+  position: relative;
+  padding-left: calc(1rem + (var(--level, 0) * 1.5rem));
+  outline: none; /* Radix adds a default outline */
 }
 
-.sourceSwitcherItem:hover {
+.sourceSwitcherItem[data-highlighted] {
   background-color: var(--rt-subtle-background-hover);
+}
+
+.sourceSwitcherItemSelected {
+  font-weight: 600;
+  color: var(--ifm-color-primary);
+}
+
+.sourceSwitcherItemContainer {
+  position: relative;
+}
+
+/* Vertical line for all indented items */
+.sourceSwitcherItemIndented::before {
+  content: '';
+  position: absolute;
+  left: calc(1rem + (var(--level, 1) - 1) * 1.5rem);
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--rt-border-color);
+  z-index: 1;
+}
+
+/* Horizontal line (elbow) for all indented items */
+.sourceSwitcherItemIndented::after {
+  content: '';
+  position: absolute;
+  left: calc(1rem + (var(--level, 1) - 1) * 1.5rem);
+  top: 50%;
+  height: 1px;
+  width: 1rem; /* Connects the vertical line to the item */
+  background-color: var(--rt-border-color);
+  z-index: 1;
+}
+
+/* For the last item in a group, the vertical line should only go halfway down */
+.sourceSwitcherItemIsLast::before {
+  height: 50%;
+}
+
+.sourceSwitcherItemInner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 
