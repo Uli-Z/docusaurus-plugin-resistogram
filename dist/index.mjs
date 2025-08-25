@@ -2173,8 +2173,12 @@ function docusaurusPluginResistogram(ctx, opts = {}) {
     async contentLoaded({ actions }) {
       const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds, orgClasses, orgIdToRank, abxSyn2Id, orgSyn2Id } = await getSharedData(dataPath, files);
       const resistanceDataFileNames = /* @__PURE__ */ new Map();
+      const allResistanceData = {};
       for (const source of sources) {
         const resistanceData = await loadResistanceDataForSource(source, sources, dataPath);
+        if (resistanceData.length > 0) {
+          allResistanceData[source.id] = resistanceData;
+        }
         if (resistanceData.length === 0) continue;
         const headers = Object.keys(resistanceData[0] || {});
         const compressedData = [
@@ -2223,10 +2227,13 @@ function docusaurusPluginResistogram(ctx, opts = {}) {
       const dataUrl = isDev ? join(ctx.baseUrl, "resistogram-data", pluginId) : join(ctx.baseUrl, "assets/json");
       const globalData = {
         sources: hierarchicalSources,
-        // Pass the tree structure to the client
         resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
         sharedDataFileName,
-        dataUrl
+        dataUrl,
+        ssr: {
+          sharedData,
+          resistanceData: allResistanceData
+        }
       };
       actions.setGlobalData(globalData);
     },

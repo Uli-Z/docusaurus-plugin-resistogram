@@ -198,6 +198,23 @@ These files allow you to group antibiotics and organisms. The `organism_classes.
 
 UI text is stored in `src/theme/ResistanceTable/i18n.ts`. You can edit this file to add support for new languages or change existing translations. The plugin uses the current Docusaurus locale and falls back to English if a translation is missing.
 
+## For Developers: Rendering Architecture
+
+The plugin employs a hybrid rendering strategy, leveraging both server-side rendering (SSR) at build time and client-side rendering (CSR) for interactivity.
+
+### Build Time (SSR)
+
+During the `docusaurus build` process, the plugin reads and processes all CSV data. It then transforms any `%%RESIST%%` directives in your Markdown files into a fully-formed `<ResistanceTable>` React component. This component is pre-rendered with its initial data, embedding the complete HTML table directly into the static page. This ensures fast initial page loads and makes the table content available to search engine crawlers.
+
+### In the Browser (CSR & Interactivity)
+
+When a user visits the page, the pre-rendered table is instantly visible. React then "hydrates" the component, making it interactive. At this stage, two key client-side features activate:
+
+-   **Adaptive Layout:** The component measures the available container width and automatically adjusts its display mode (e.g., by abbreviating names) to best fit the user's screen.
+-   **Dynamic Data Loading:** If the user selects a new data source from the dropdown, the component fetches the corresponding data from the server and updates the table in place, without needing a page refresh.
+
+This hybrid model provides the fast initial load times and SEO benefits of a static site, combined with the dynamic and responsive experience of a modern web application.
+
 ## License
 
 This project is licensed under the MIT License.

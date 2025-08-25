@@ -1,7 +1,8 @@
 import { visit, SKIP } from "unist-util-visit";
 import { toString } from "mdast-util-to-string";
-import { getSharedData, resolveIds, selectDataSource } from "../data";
+import { getSharedData, resolveIds, selectDataSource, loadResistanceDataForSource } from "../data";
 import { join } from "path";
+import chalk from 'chalk';
 
 // AST → Plaintext (robust über MD/MDX, ohne Code/InlineCode, ohne %%RESIST-Zeilen)
 export function mdastToPlainText(root: any): string {
@@ -49,7 +50,7 @@ const parseParams = (s: string): Record<string, string> => {
     // e.g., from '"S. aureus,S. epidermidis"' to 'S. aureus,S. epidermidis'
     const tokens = [];
     // This regex finds quoted strings or unquoted chunks between commas.
-    const tokenRegex = /"([^"]*)"|'([^']*)'|([^,]+)/g;
+    const tokenRegex = /"([^\"]*)"|'([^']*)'|([^,]+)/g;
     let tokenMatch;
     while ((tokenMatch = tokenRegex.exec(value)) !== null) {
       // The matched value is in one of the capture groups.
@@ -116,6 +117,27 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
       const { resolved: antibioticIds, unresolved: unresolvedAbx } = resolveIds(abxParam, sharedData.allAbxIds, sharedData.abxSyn2Id, pageText);
       const { resolved: organismIds, unresolved: unresolvedOrg } = resolveIds(orgParam, sharedData.allOrgIds, sharedData.orgSyn2Id, pageText);
       const selectedSource = selectDataSource(params.source, sharedData.sources);
+
+      // --- Build-Time Data Validation ---
+      const logWarning = (message: string) => {
+        console.warn(chalk.yellow(`[docusaurus-plugin-resistogram] Warning in ${file.path}:\n${message}\n`));
+      };
+
+      if (unresolvedAbx.length > 0 || unresolvedOrg.length > 0) {
+        const unresolved = [...unresolvedAbx, ...unresolvedOrg];
+        logWarning(`Unrecognized identifiers in "%%RESIST ${paramsStr}%%": ${unresolved.join(', ')}.\nThe table will display an error.`);
+      } else if (antibioticIds.length === 0 || organismIds.length === 0) {
+        logWarning(`The directive "%%RESIST ${paramsStr}%%" did not resolve to any valid antibiotics or organisms.\nThe table will be empty.`);
+      } else {
+        const resistanceData = await loadResistanceDataForSource(selectedSource, sharedData.sources, dataPath);
+        const hasData = resistanceData.some(row => 
+          antibioticIds.includes(row.antibiotic_id) && organismIds.includes(row.organism_id)
+        );
+        if (!hasData) {
+          logWarning(`No resistance data found for the combination of resolved antibiotics and organisms in "%%RESIST ${paramsStr}%%".\nThe table will be empty.`);
+        }
+      }
+      // --- End Validation ---
 
       const resistogramNode = {
         type: "mdxJsxFlowElement",

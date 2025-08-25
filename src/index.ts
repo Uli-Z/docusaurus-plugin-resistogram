@@ -50,24 +50,31 @@ export default function docusaurusPluginResistogram(
     async contentLoaded({ actions }: { actions: any }) {
       const { abx, org, sources, hierarchicalSources, allAbxIds, allOrgIds, orgClasses, orgIdToRank, abxSyn2Id, orgSyn2Id } = await getSharedData(dataPath, files);
 
-      // 1. Process and write resistance data for each source, using the new hierarchical loader
       const resistanceDataFileNames = new Map<string, string>();
-      for (const source of sources) { // Iterate over the flat list to process all sources
-        const resistanceData = await loadResistanceDataForSource(source, sources, dataPath);
-        if (resistanceData.length === 0) continue; // Skip empty sources
+      const allResistanceData = {}; 
 
+      for (const source of sources) {
+        const resistanceData = await loadResistanceDataForSource(source, sources, dataPath);
+        
+        // Store the raw (uncompressed) data for server-side rendering.
+        if (resistanceData.length > 0) {
+          allResistanceData[source.id] = resistanceData;
+        }
+
+        if (resistanceData.length === 0) continue;
+
+        // Compress data for client-side fetch payloads to reduce file size.
         const headers = Object.keys(resistanceData[0] || {});
-        // Compress data into an array of arrays for smaller JSON size
         const compressedData = [
           headers,
           ...resistanceData.map((row: any) => headers.map((h) => row[h])),
         ];
-        const fileName = `resist-data-${source.id}.json`; // Use source.id for a stable name
+        const fileName = `resist-data-${source.id}.json`;
         writeJsonSync(join(pluginDataDir, fileName), compressedData);
         resistanceDataFileNames.set(source.id, fileName);
       }
 
-      // 2. Create and write the shared data file for the client
+      // Create and write the shared data file for the client.
       const classToAbx = new Map<string, string[]>();
       for (const antibiotic of abx) {
         if (antibiotic.class) {
@@ -99,7 +106,7 @@ export default function docusaurusPluginResistogram(
       };
       writeJsonSync(join(pluginDataDir, sharedDataFileName), sharedData);
 
-      // 3. In dev mode, copy generated files to a static dir to be served
+      // In dev mode, copy generated files to a static dir to be served.
       const isDev = process.env.NODE_ENV === 'development';
       if (isDev) {
         const staticDir = join(siteDir, 'static', 'resistogram-data', pluginId);
@@ -107,16 +114,21 @@ export default function docusaurusPluginResistogram(
         copySync(pluginDataDir, staticDir);
       }
 
-      // 4. Set global data, now with hierarchical sources
+      // Determine the base URL for fetching data on the client.
       const dataUrl = isDev 
         ? join(ctx.baseUrl, 'resistogram-data', pluginId) 
         : join(ctx.baseUrl, 'assets/json');
 
+      // Set all data that the client needs, including the preloaded data for SSR.
       const globalData = {
-        sources: hierarchicalSources, // Pass the tree structure to the client
+        sources: hierarchicalSources,
         resistanceDataFileNames: Object.fromEntries(resistanceDataFileNames),
         sharedDataFileName,
         dataUrl,
+        ssr: {
+          sharedData,
+          resistanceData: allResistanceData,
+        }
       };
       actions.setGlobalData(globalData);
     },
