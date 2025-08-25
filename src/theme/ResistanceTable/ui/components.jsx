@@ -109,6 +109,7 @@ export const CellTooltipContent = ({
 }) => {
   const rowLabel = rowsAreAbx ? t('antibiotic') : t('organism');
   const colLabel = rowsAreAbx ? t('organism') : t('antibiotic');
+
   return (
     <div style={{ textAlign: 'left' }}>
       <div><strong>{rowLabel}:</strong> {row.rowLong}</div>
@@ -116,8 +117,17 @@ export const CellTooltipContent = ({
       <div style={{ marginTop: 4 }}>
         {cell ? (
           <>
-            <span><strong>{t('tooltipResistance')}:</strong> {cell.text}</span>
-            {sourceName && <div style={{fontSize: '0.8em', opacity: 0.8}}>{t('source')}: {sourceName}</div>}
+            <span>
+              <strong>{t('tooltipResistance')}:</strong>{' '}
+              {cell.isIntrinsic
+                ? t('intrinsicResistance')
+                : `${cell.pct}% (n=${cell.n})`}
+            </span>
+            {sourceName && (
+              <div style={{ fontSize: '0.8em', opacity: 0.8 }}>
+                {t('source')}: {sourceName}
+              </div>
+            )}
           </>
         ) : (
           <span>{t('tooltipNoData')}</span>

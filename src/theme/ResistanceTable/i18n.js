@@ -22,9 +22,10 @@ export const translations = {
     pluginError: 'Docusaurus Plugin-Daten nicht gefunden.',
     tooltipResistance: 'Resistenz',
     tooltipNoData: 'Keine Daten verfügbar',
+    intrinsicResistance: 'erwartet',
   },
   en: {
-    loading: 'Loading resistance data...',
+    loading: 'Loading resistance data...', 
     error: 'Error',
     resistanceTable: 'Resistance Table',
     noData: 'No matching resistance data found for the selected criteria in this source.',
@@ -46,6 +47,7 @@ export const translations = {
     pluginError: 'Docusaurus plugin data not found.',
     tooltipResistance: 'Resistance',
     tooltipNoData: 'No data available',
+    intrinsicResistance: 'expected',
     generationFailed: 'Resistogram could not be created. Error message',
   },
   fr: {
@@ -71,6 +73,7 @@ export const translations = {
     pluginError: 'Données du plugin Docusaurus introuvables.',
     tooltipResistance: 'Résistance',
     tooltipNoData: 'Aucune donnée disponible',
+    intrinsicResistance: 'attendu',
   },
   es: {
     loading: 'Cargando datos de resistencia...', 
@@ -95,6 +98,7 @@ export const translations = {
     pluginError: 'No se encontraron datos del plugin de Docusaurus.',
     tooltipResistance: 'Resistencia',
     tooltipNoData: 'No hay datos disponibles',
+    intrinsicResistance: 'esperado',
   },
   it: {
     loading: 'Caricamento dei dati sulla resistenza...', 
@@ -119,6 +123,7 @@ export const translations = {
     pluginError: 'Dati del plugin Docusaurus non trovati.',
     tooltipResistance: 'Resistenza',
     tooltipNoData: 'Nessun dato disponibile',
+    intrinsicResistance: 'previsto',
   },
 };
 
