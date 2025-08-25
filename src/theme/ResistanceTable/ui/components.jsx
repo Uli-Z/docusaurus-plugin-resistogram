@@ -1,38 +1,59 @@
 import React from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
+import clsx from 'clsx';
 
 // Recursive component to render the source tree
 const SourceMenuItem = ({
   source,
+  selected,
   onSelect,
   styles,
   level = 0,
+  isLast = false,
   locale,
-}) => (
-  <>
-    <DropdownMenu.Item
-      key={source.id}
-      className={styles.sourceSwitcherItem}
-      style={{ paddingLeft: `${1 + level * 1.5}rem` }}
-      onSelect={() => onSelect(source)}
-    >
-      {source[`name_${locale}`] || source.name_en || source.id}
-    </DropdownMenu.Item>
-    {source.children && source.children.length > 0 && (
-      source.children.map(child => (
-        <SourceMenuItem
-          key={child.id}
-          source={child}
-          onSelect={onSelect}
-          styles={styles}
-          level={level + 1}
-          locale={locale}
-        />
-      ))
-    )}
-  </>
-);
+}) => {
+  const hasChildren = source.children && source.children.length > 0;
+  const isSelected = selected?.id === source.id;
+
+  return (
+    <div className={styles.sourceSwitcherItemContainer} role="presentation">
+      <DropdownMenu.Item
+        key={source.id}
+        className={clsx(
+          styles.sourceSwitcherItem,
+          isSelected && styles.sourceSwitcherItemSelected,
+          isLast && styles.sourceSwitcherItemIsLast,
+          level > 0 && styles.sourceSwitcherItemIndented,
+        )}
+        style={{ '--level': level }}
+        onSelect={() => onSelect(source)}
+        role="menuitemradio"
+        aria-checked={isSelected}
+      >
+        <span className={styles.sourceSwitcherItemInner}>
+          <span className={styles.sourceSwitcherItemLabel}>{source[`name_${locale}`] || source.name_en || source.id}</span>
+        </span>
+      </DropdownMenu.Item>
+      {hasChildren && (
+        <div className={styles.sourceSwitcherSubMenu} role="group">
+          {source.children.map((child, index) => (
+            <SourceMenuItem
+              key={child.id}
+              source={child}
+              selected={selected}
+              onSelect={onSelect}
+              styles={styles}
+              level={level + 1}
+              isLast={index === source.children.length - 1}
+              locale={locale}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const SourceSwitcher = ({
   sources,
@@ -58,10 +79,20 @@ export const SourceSwitcher = ({
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content className={styles.sourceSwitcherContent} sideOffset={5}>
-          {sources.map((s) => (
-            <SourceMenuItem key={s.id} source={s} onSelect={onSelect} styles={styles} locale={locale} />
-          ))}
+        <DropdownMenu.Content className={styles.sourceSwitcherContent} sideOffset={-1} align="start">
+          <DropdownMenu.RadioGroup value={selected?.id}>
+            {sources.map((s, index) => (
+              <SourceMenuItem
+                key={s.id}
+                source={s}
+                selected={selected}
+                onSelect={onSelect}
+                styles={styles}
+                isLast={index === sources.length - 1}
+                locale={locale}
+              />
+            ))}
+          </DropdownMenu.RadioGroup>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
