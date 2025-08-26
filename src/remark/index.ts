@@ -4,7 +4,7 @@ import { getSharedData, resolveIds, selectDataSource, loadResistanceDataForSourc
 import { join } from "path";
 import chalk from 'chalk';
 
-// AST → Plaintext (robust über MD/MDX, ohne Code/InlineCode, ohne %%RESIST-Zeilen)
+// AST → Plaintext (robust for MD/MDX, excluding code, inlineCode, and %%RESIST paragraphs)
 export function mdastToPlainText(root: any): string {
   let out = "";
   const push = (s: string) => {
@@ -14,22 +14,53 @@ export function mdastToPlainText(root: any): string {
   };
 
   visit(root, (node) => {
-    if (node.type === "code" || node.type === "inlineCode") {
+    // --- Skip rules ---------------------------------------------------------
+
+    // Skip entire code blocks and inline code.
+    if (node.type === "code" || node.type === "inlineCode") return SKIP;
+
+    // Skip paragraphs that contain a %%RESIST directive.
+    if (node.type === "paragraph" && /%%RESIST/.test(toString(node))) return SKIP;
+
+    // --- Headings -----------------------------------------------------------
+
+    // Plain Markdown headings (# Title) are "heading" nodes.
+    // Extract their text once as a whole and skip visiting children
+    // to avoid double counting.
+    if (node.type === "heading") {
+      push(toString(node));
       return SKIP;
     }
-    if (node.type === "paragraph" && /%%RESIST/.test(toString(node))) {
-       return SKIP;
+
+    // MDX JSX elements may represent headings too, e.g. <h2>…</h2> or <Heading>…</Heading>.
+    // Detect those and extract their text. For other MDX elements,
+    // keep traversing so text children are collected normally.
+    if (
+      node.type === "mdxJsxFlowElement" ||
+      node.type === "mdxJsxTextElement"
+    ) {
+      const name = (node as any).name?.toLowerCase?.();
+      if (name && (/^h[1-6]$/.test(name) || name.includes("heading"))) {
+        push(toString(node));
+        return SKIP;
+      }
     }
+
+    // --- Plain text ---------------------------------------------------------
+
+    // Collect raw text node values.
     if (node.type === "text") {
-      push(node.value as string);
+      push((node as any).value as string);
     }
-    if (node.type === "break") {
-      out += " ";
-    }
+
+    // Replace line breaks with spaces to keep words separated.
+    if (node.type === "break") out += " ";
   });
 
-  const compact = out.replace(/\s+/g, " ").trim();
-  return ` ${compact} `;
+    // Normalize whitespace: collapse multiple spaces and trim.
+    const compact = out.replace(/\s+/g, " ").trim();
+    // Surround with spaces so word-boundary regexes (`\b`) work reliably at edges.
+    return ` ${compact} `;
 }
 
 const parseParams = (s: string): Record<string, string> => {
@@ -120,21 +151,55 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
 
       // --- Build-Time Data Validation ---
       const logWarning = (message: string) => {
-        console.warn(chalk.yellow(`[docusaurus-plugin-resistogram] Warning in ${file.path}:\n${message}\n`));
+        console.warn(
+          chalk.yellow(`[docusaurus-plugin-resistogram] Warning in ${file.path}:\n${message}\n`)
+        );
       };
+
+      // Show details about which params were "auto" and what failed
+      const autoInfo: string[] = [];
+      if (abxParam === "auto") {
+        autoInfo.push("antibiotics=auto → resolved against page text");
+      }
+      if (orgParam === "auto") {
+        autoInfo.push("organisms=auto → resolved against page text");
+      }
 
       if (unresolvedAbx.length > 0 || unresolvedOrg.length > 0) {
         const unresolved = [...unresolvedAbx, ...unresolvedOrg];
-        logWarning(`Unrecognized identifiers in "%%RESIST ${paramsStr}%%": ${unresolved.join(', ')}.\nThe table will display an error.`);
+        logWarning(
+          `Unrecognized identifiers in "%%RESIST ${paramsStr}%%": ${unresolved.join(
+            ", "
+          )}.
+          Resolved antibiotics: ${JSON.stringify(antibioticIds)}.
+          Resolved organisms: ${JSON.stringify(organismIds)}.
+          ${autoInfo.length ? "Parameter mode: " + autoInfo.join("; ") : ""}`
+        );
       } else if (antibioticIds.length === 0 || organismIds.length === 0) {
-        logWarning(`The directive "%%RESIST ${paramsStr}%%" did not resolve to any valid antibiotics or organisms.\nThe table will be empty.`);
+        logWarning(
+          `The directive "%%RESIST ${paramsStr}%%" did not resolve to any valid antibiotics or organisms.
+          Resolved antibiotics: ${JSON.stringify(antibioticIds)}.
+          Resolved organisms: ${JSON.stringify(organismIds)}.
+          ${autoInfo.length ? "Parameter mode: " + autoInfo.join("; ") : ""}`
+        );
       } else {
-        const resistanceData = await loadResistanceDataForSource(selectedSource, sharedData.sources, dataPath);
-        const hasData = resistanceData.some(row => 
-          antibioticIds.includes(row.antibiotic_id) && organismIds.includes(row.organism_id)
+        const resistanceData = await loadResistanceDataForSource(
+          selectedSource,
+          sharedData.sources,
+          dataPath
+        );
+        const hasData = resistanceData.some(
+          (row) =>
+          antibioticIds.includes(row.antibiotic_id) &&
+          organismIds.includes(row.organism_id)
         );
         if (!hasData) {
-          logWarning(`No resistance data found for the combination of resolved antibiotics and organisms in "%%RESIST ${paramsStr}%%".\nThe table will be empty.`);
+          logWarning(
+            `No resistance data found for the combination in "%%RESIST ${paramsStr}%%".
+            Resolved antibiotics: ${JSON.stringify(antibioticIds)}.
+            Resolved organisms: ${JSON.stringify(organismIds)}.
+            ${autoInfo.length ? "Parameter mode: " + autoInfo.join("; ") : ""}`
+          );
         }
       }
       // --- End Validation ---
