@@ -105,7 +105,17 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
   const { dataDir = "data", files = {}, pluginId = 'default' } = options;
 
   return async (tree: any, file: any) => {
-    const pageText = mdastToPlainText(tree);
+    // Extract plain text from the AST
+    let pageText = mdastToPlainText(tree);
+
+    // --- Add title from frontmatter if present -------------------------------
+    // In Docusaurus, parsed frontmatter is available on file.data.frontmatter
+    const fm = (file.data && (file.data as any).frontmatter) || {};
+    if (fm.title) {
+      // Surround with spaces so word-boundary regexes still work
+      pageText = ` ${fm.title} ${pageText}`;
+    }
+
     const nodesToProcess: any[] = [];
 
     visit(tree, "paragraph", (node: any, index: number | undefined, parent: any) => {
