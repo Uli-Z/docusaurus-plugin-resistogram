@@ -3,6 +3,8 @@ import { toString } from "mdast-util-to-string";
 import { getSharedData, resolveIds, selectDataSource, loadResistanceDataForSource } from "../data";
 import { join } from "path";
 import chalk from 'chalk';
+import matter from 'gray-matter';
+import fs from 'fs';
 
 // AST → Plaintext (robust for MD/MDX, excluding code, inlineCode, and %%RESIST paragraphs)
 export function mdastToPlainText(root: any): string {
@@ -109,11 +111,18 @@ export default function remarkResistogram(options: { dataDir?: string, files?: a
     let pageText = mdastToPlainText(tree);
 
     // --- Add title from frontmatter if present -------------------------------
-    // In Docusaurus, parsed frontmatter is available on file.data.frontmatter
-    const fm = (file.data && (file.data as any).frontmatter) || {};
-    if (fm.title) {
-      // Surround with spaces so word-boundary regexes still work
-      pageText = ` ${fm.title} ${pageText}`;
+    // Manually read the file and parse frontmatter using gray-matter
+    // because file.data.frontmatter might not be reliably populated
+    // at this stage of the Docusaurus build process.
+    try {
+      const fileContent = fs.readFileSync(file.path, 'utf8');
+      const { data: fm } = matter(fileContent);
+      if (fm.title) {
+        // Surround with spaces so word-boundary regexes still work
+        pageText = ` ${fm.title} ${pageText}`;
+      }
+    } catch (e) {
+      // Ignore errors (e.g., file not found), proceed with AST-based text.
     }
 
     const nodesToProcess: any[] = [];
