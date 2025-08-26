@@ -1658,7 +1658,11 @@ var parseParams = (s) => {
 function remarkResistogram(options) {
   const { dataDir = "data", files = {}, pluginId = "default" } = options;
   return async (tree, file) => {
-    const pageText = mdastToPlainText(tree);
+    let pageText = mdastToPlainText(tree);
+    const fm = file.data && file.data.frontmatter || {};
+    if (fm.title) {
+      pageText = ` ${fm.title} ${pageText}`;
+    }
     const nodesToProcess = [];
     visit(tree, "paragraph", (node2, index, parent) => {
       if (toString(node2).includes("%%RESIST")) {
