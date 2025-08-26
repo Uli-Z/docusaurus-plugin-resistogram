@@ -1609,18 +1609,23 @@ function mdastToPlainText(root) {
     out += s;
   };
   visit(root, (node2) => {
-    if (node2.type === "code" || node2.type === "inlineCode") {
+    if (node2.type === "code" || node2.type === "inlineCode") return SKIP;
+    if (node2.type === "paragraph" && /%%RESIST/.test(toString(node2))) return SKIP;
+    if (node2.type === "heading") {
+      push(toString(node2));
       return SKIP;
     }
-    if (node2.type === "paragraph" && /%%RESIST/.test(toString(node2))) {
-      return SKIP;
+    if (node2.type === "mdxJsxFlowElement" || node2.type === "mdxJsxTextElement") {
+      const name = node2.name?.toLowerCase?.();
+      if (name && (/^h[1-6]$/.test(name) || name.includes("heading"))) {
+        push(toString(node2));
+        return SKIP;
+      }
     }
     if (node2.type === "text") {
       push(node2.value);
     }
-    if (node2.type === "break") {
-      out += " ";
-    }
+    if (node2.type === "break") out += " ";
   });
   const compact = out.replace(/\s+/g, " ").trim();
   return ` ${compact} `;
@@ -1688,25 +1693,52 @@ function remarkResistogram(options) {
       const { resolved: organismIds, unresolved: unresolvedOrg } = resolveIds(orgParam, sharedData.allOrgIds, sharedData.orgSyn2Id, pageText);
       const selectedSource = selectDataSource(params.source, sharedData.sources);
       const logWarning = (message) => {
-        console.warn(import_chalk.default.yellow(`[docusaurus-plugin-resistogram] Warning in ${file.path}:
+        console.warn(
+          import_chalk.default.yellow(`[docusaurus-plugin-resistogram] Warning in ${file.path}:
 ${message}
-`));
+`)
+        );
       };
+      const autoInfo = [];
+      if (abxParam === "auto") {
+        autoInfo.push("antibiotics=auto \u2192 resolved against page text");
+      }
+      if (orgParam === "auto") {
+        autoInfo.push("organisms=auto \u2192 resolved against page text");
+      }
       if (unresolvedAbx.length > 0 || unresolvedOrg.length > 0) {
         const unresolved = [...unresolvedAbx, ...unresolvedOrg];
-        logWarning(`Unrecognized identifiers in "%%RESIST ${paramsStr}%%": ${unresolved.join(", ")}.
-The table will display an error.`);
+        logWarning(
+          `Unrecognized identifiers in "%%RESIST ${paramsStr}%%": ${unresolved.join(
+            ", "
+          )}.
+          Resolved antibiotics: ${JSON.stringify(antibioticIds)}.
+          Resolved organisms: ${JSON.stringify(organismIds)}.
+          ${autoInfo.length ? "Parameter mode: " + autoInfo.join("; ") : ""}`
+        );
       } else if (antibioticIds.length === 0 || organismIds.length === 0) {
-        logWarning(`The directive "%%RESIST ${paramsStr}%%" did not resolve to any valid antibiotics or organisms.
-The table will be empty.`);
+        logWarning(
+          `The directive "%%RESIST ${paramsStr}%%" did not resolve to any valid antibiotics or organisms.
+          Resolved antibiotics: ${JSON.stringify(antibioticIds)}.
+          Resolved organisms: ${JSON.stringify(organismIds)}.
+          ${autoInfo.length ? "Parameter mode: " + autoInfo.join("; ") : ""}`
+        );
       } else {
-        const resistanceData = await loadResistanceDataForSource(selectedSource, sharedData.sources, dataPath);
+        const resistanceData = await loadResistanceDataForSource(
+          selectedSource,
+          sharedData.sources,
+          dataPath
+        );
         const hasData = resistanceData.some(
           (row) => antibioticIds.includes(row.antibiotic_id) && organismIds.includes(row.organism_id)
         );
         if (!hasData) {
-          logWarning(`No resistance data found for the combination of resolved antibiotics and organisms in "%%RESIST ${paramsStr}%%".
-The table will be empty.`);
+          logWarning(
+            `No resistance data found for the combination in "%%RESIST ${paramsStr}%%".
+            Resolved antibiotics: ${JSON.stringify(antibioticIds)}.
+            Resolved organisms: ${JSON.stringify(organismIds)}.
+            ${autoInfo.length ? "Parameter mode: " + autoInfo.join("; ") : ""}`
+          );
         }
       }
       const resistogramNode = {
