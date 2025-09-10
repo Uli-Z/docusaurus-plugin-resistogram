@@ -1601,6 +1601,8 @@ function node(value) {
 // src/remark/index.ts
 var import_chalk = __toESM(require_source());
 import { join } from "path";
+import matter from "gray-matter";
+import fs from "fs";
 function mdastToPlainText(root) {
   let out = "";
   const push = (s) => {
@@ -1659,9 +1661,13 @@ function remarkResistogram(options) {
   const { dataDir = "data", files = {}, pluginId = "default" } = options;
   return async (tree, file) => {
     let pageText = mdastToPlainText(tree);
-    const fm = file.data && file.data.frontmatter || {};
-    if (fm.title) {
-      pageText = ` ${fm.title} ${pageText}`;
+    try {
+      const fileContent = fs.readFileSync(file.path, "utf8");
+      const { data: fm } = matter(fileContent);
+      if (fm.title) {
+        pageText = ` ${fm.title} ${pageText}`;
+      }
+    } catch (e) {
     }
     const nodesToProcess = [];
     visit(tree, "paragraph", (node2, index, parent) => {
