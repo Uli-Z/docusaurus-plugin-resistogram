@@ -71,6 +71,7 @@ export const TableRow = React.memo(
             onShowTooltip={onShowTooltip}
             onHideTooltip={onHideTooltip}
             styles={styles}
+            palette={palette}
             colorMode={colorMode}
             sourceId2ShortName={sourceId2ShortName}
             t={t}

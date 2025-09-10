@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
@@ -16,6 +16,10 @@ const SourceMenuItem = ({
 }) => {
   const hasChildren = source.children && source.children.length > 0;
   const isSelected = selected?.id === source.id;
+  const [isHighlighted, setIsHighlighted] = useState(false);
+  const indentRem = 1 + level * 1.5;
+  const itemColor = isSelected ? 'var(--ifm-color-primary)' : (palette?.text ?? undefined);
+  const itemBg = isHighlighted ? (palette?.subtleBgHover ?? undefined) : undefined;
 
   return (
     <div className={styles.sourceSwitcherItemContainer} role="presentation">
@@ -27,15 +31,19 @@ const SourceMenuItem = ({
           isLast && styles.sourceSwitcherItemIsLast,
           level > 0 && styles.sourceSwitcherItemIndented,
         )}
-        style={{ '--level': level }}
+        style={{ '--level': String(level), color: itemColor, backgroundColor: itemBg, paddingLeft: `${indentRem}rem` }}
         onSelect={() => onSelect(source)}
         role="menuitemradio"
         aria-checked={isSelected}
-      
-        style={{ color: palette?.text }}
+        onPointerEnter={() => setIsHighlighted(true)}
+        onPointerLeave={() => setIsHighlighted(false)}
+        onFocus={() => setIsHighlighted(true)}
+        onBlur={() => setIsHighlighted(false)}
       >
-        <span className={styles.sourceSwitcherItemInner}>
-          <span className={styles.sourceSwitcherItemLabel}>{source[`name_${locale}`] || source.name_en || source.id}</span>
+        <span className={styles.sourceSwitcherItemInner} style={{ color: itemColor }}>
+          <span className={styles.sourceSwitcherItemLabel} style={{ color: itemColor }}>
+            {source[`name_${locale}`] || source.name_en || source.id}
+          </span>
         </span>
       </DropdownMenu.Item>
       {hasChildren && (
@@ -50,6 +58,7 @@ const SourceMenuItem = ({
               level={level + 1}
               isLast={index === source.children.length - 1}
               locale={locale}
+              palette={palette}
             />
           ))}
         </div>
@@ -102,6 +111,7 @@ export const SourceSwitcher = ({
           style={{
             backgroundColor: palette?.background,
             border: `1px solid ${palette?.border}`,
+            color: palette?.text,
           }}
         >
           <DropdownMenu.RadioGroup value={selected?.id}>

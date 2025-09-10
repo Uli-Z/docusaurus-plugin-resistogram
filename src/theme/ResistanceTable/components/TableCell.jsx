@@ -16,6 +16,7 @@ export const TableCell = React.memo(
     onShowTooltip,
     onHideTooltip,
     styles,
+    palette,
     colorMode,
     sourceId2ShortName,
     t,
@@ -47,6 +48,7 @@ export const TableCell = React.memo(
       <td
         style={{
           ...cellStyle(cell?.pct, colorMode),
+          color: palette?.text,
           ...(highlight ? hl : {}),
         }}
         onMouseEnter={handleMouseEnter}
