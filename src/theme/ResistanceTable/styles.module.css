@@ -2,33 +2,6 @@
    General Styles
    ============================================================================ */
 
-:root {
-  --rt-border-color: #ddd;
-  --rt-background-color: #fff;
-  --rt-text-color: #333;
-  --rt-subtle-background: #f9f9f9;
-  --rt-subtle-background-hover: #f0f0f0;
-  --rt-source-info-background: #f0f0f0;
-  --rt-source-info-text: #666;
-  --rt-empty-cell-background: #f2f2f2;
-  --rt-tooltip-background: rgba(60, 60, 60, 0.9);
-  --rt-tooltip-text: #fff;
-  --rt-tab-radius: 5px;
-}
-
-[data-theme='dark'] {
-  --rt-border-color: #444;
-  --rt-background-color: #1e1e1e;
-  --rt-text-color: #eee;
-  --rt-subtle-background: #252525;
-  --rt-subtle-background-hover: #333;
-  --rt-source-info-background: #333;
-  --rt-source-info-text: #bbb;
-  --rt-empty-cell-background: #2a2a2a;
-  --rt-tooltip-background: rgba(200, 200, 200, 0.9);
-  --rt-tooltip-text: #000;
-}
-
 .error {
   color: red;
   border: 1px solid red;

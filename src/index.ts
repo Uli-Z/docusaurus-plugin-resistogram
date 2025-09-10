@@ -40,8 +40,6 @@ export default function docusaurusPluginResistogram(
   );
   ensureDirSync(pluginDataDir);
 
-  const isProd = process.env.NODE_ENV === 'production';
-
   return {
     name: "docusaurus-plugin-resistogram",
 
@@ -49,12 +47,8 @@ export default function docusaurusPluginResistogram(
       return path.resolve(__dirname, "./theme");
     },
 
-    // Explicitly add the theme's stylesheet to the client modules only for the production build.
-    // This is a workaround for an issue where the styles are not being picked up automatically
-    // in the production build. In development, this is disabled to allow for hot-reloading
-    // and correct dark mode behavior.
     getClientModules() {
-      return isProd ? [path.resolve(__dirname, './theme/ResistanceTable/styles.module.css')] : [];
+      return [path.resolve(__dirname, './plugin.css')];
     },
 
     async contentLoaded({ actions }: { actions: any }) {
