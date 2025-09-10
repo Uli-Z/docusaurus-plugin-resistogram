@@ -13,6 +13,7 @@ import { SourceSwitcher } from './ui/components';
 import { TableHeader, TableBody, Legend } from './components';
 import styles from './styles.module.css';
 import { groupAndSortAntibiotics, buildMatrix, formatMatrix } from './utils';
+import { PaletteProvider } from './palette';
 import { getTranslator } from './i18n';
 
 const useIsomorphicLayoutEffect =
@@ -108,6 +109,9 @@ export default function ResistanceTable(props) {
 
   const { colorMode } = useColorMode();
 
+  // We will use PaletteProvider to supply inline color values to subcomponents.
+  // For inline styles within this component, we derive the same palette through the provider.
+  // To keep it simple here, we compute a local palette identical to the provider's value.
   const palette = useMemo(() => {
     if (colorMode === 'dark') {
       return {
@@ -122,6 +126,7 @@ export default function ResistanceTable(props) {
         tooltipBg: 'rgba(200, 200, 200, 0.9)',
         tooltipText: '#000',
         overlay: 'rgba(30, 30, 30, 0.7)',
+        primary: 'var(--ifm-color-primary, #7aa2f7)'
       };
     }
     return {
@@ -136,6 +141,7 @@ export default function ResistanceTable(props) {
       tooltipBg: 'rgba(60, 60, 60, 0.9)',
       tooltipText: '#fff',
       overlay: 'rgba(255, 255, 255, 0.7)',
+      primary: 'var(--ifm-color-primary, #3578e5)'
     };
   }, [colorMode]);
 
@@ -466,10 +472,10 @@ export default function ResistanceTable(props) {
           </div>
         )}
         <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0, color: palette.text }}>
-          <TableHeader {...{ cols, displayMode: display, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, palette }} />
-          <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode, sourceId2ShortName, palette, t }} />
+          <TableHeader {...{ cols, displayMode: display, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles }} />
+          <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode, sourceId2ShortName, t }} />
         </table>
-        <Legend {...{ cols, displayMode: display, styles, palette }} />
+        <Legend {...{ cols, displayMode: display, styles }} />
         <div className={styles.sourceInfo} style={{ backgroundColor: palette.sourceInfoBg, borderTop: `1px solid ${palette.border}`, color: palette.sourceInfoText }}>
           {renderHiddenInfo()}
           {sourceChain.length > 0 && (
@@ -500,33 +506,35 @@ export default function ResistanceTable(props) {
   if (!pluginGlobalData) return <div className={styles.error}>{t('error')}: {t('pluginError')}</div>;
 
   return (
-    <RadixTooltip.Provider>
-      <div ref={containerRef} style={{ minHeight: '150px' }}>
-        <div className={styles.rootContainer}>
-          {hierarchicalSources.length > 0 && (
-            <SourceSwitcher {...{ sources: hierarchicalSources, selected: selectedSource, onSelect: setSelectedSource, styles, locale, palette }} />
-          )}
-          <div className={styles.tableContainer}>
-            {renderContent()}
+    <PaletteProvider colorMode={colorMode}>
+      <RadixTooltip.Provider>
+        <div ref={containerRef} style={{ minHeight: '150px' }}>
+          <div className={styles.rootContainer}>
+            {hierarchicalSources.length > 0 && (
+              <SourceSwitcher {...{ sources: hierarchicalSources, selected: selectedSource, onSelect: setSelectedSource, styles, locale }} />
+            )}
+            <div className={styles.tableContainer}>
+              {renderContent()}
+            </div>
           </div>
         </div>
-      </div>
 
-      <RadixTooltip.Root open={tooltipOpen} onOpenChange={setTooltipOpen}>
-        <RadixTooltip.Trigger asChild><VirtualTrigger ref={virtualTriggerRef} /></RadixTooltip.Trigger>
-        <RadixTooltip.Portal>
-          <RadixTooltip.Content
-            side="top"
-            align="center"
-            sideOffset={5}
-            className={styles.tooltipContent}
-            style={{ backgroundColor: palette.tooltipBg, color: palette.tooltipText }}
-          >
-            {tooltipContent}
-            <RadixTooltip.Arrow width={8} height={4} className={styles.tooltipArrow} style={{ fill: palette.tooltipBg }} />
-          </RadixTooltip.Content>
-        </RadixTooltip.Portal>
-      </RadixTooltip.Root>
-    </RadixTooltip.Provider>
+        <RadixTooltip.Root open={tooltipOpen} onOpenChange={setTooltipOpen}>
+          <RadixTooltip.Trigger asChild><VirtualTrigger ref={virtualTriggerRef} /></RadixTooltip.Trigger>
+          <RadixTooltip.Portal>
+            <RadixTooltip.Content
+              side="top"
+              align="center"
+              sideOffset={5}
+              className={styles.tooltipContent}
+              style={{ backgroundColor: palette.tooltipBg, color: palette.tooltipText }}
+            >
+              {tooltipContent}
+              <RadixTooltip.Arrow width={8} height={4} className={styles.tooltipArrow} style={{ fill: palette.tooltipBg }} />
+            </RadixTooltip.Content>
+          </RadixTooltip.Portal>
+        </RadixTooltip.Root>
+      </RadixTooltip.Provider>
+    </PaletteProvider>
   );
 }

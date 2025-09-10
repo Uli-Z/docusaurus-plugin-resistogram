@@ -1,6 +1,7 @@
 import React from 'react';
 import { CellTooltipContent } from '../ui/components';
 import { cellStyle, hl } from '../utils';
+import { usePalette } from '../palette';
 
 export const TableCell = React.memo(
   ({
@@ -16,11 +17,11 @@ export const TableCell = React.memo(
     onShowTooltip,
     onHideTooltip,
     styles,
-    palette,
     colorMode,
     sourceId2ShortName,
     t,
   }) => {
+    const palette = usePalette();
     const cell = row[col.name];
     const highlight = hoveredRow === rowIndex || hoveredCol === colIndex;
 

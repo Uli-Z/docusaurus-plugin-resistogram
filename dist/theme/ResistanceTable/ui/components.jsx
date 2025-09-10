@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePalette } from '../palette';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
@@ -12,8 +13,8 @@ const SourceMenuItem = ({
   level = 0,
   isLast = false,
   locale,
-  palette,
 }) => {
+  const palette = usePalette();
   const hasChildren = source.children && source.children.length > 0;
   const isSelected = selected?.id === source.id;
   const [isHighlighted, setIsHighlighted] = useState(false);
@@ -73,8 +74,8 @@ export const SourceSwitcher = ({
   onSelect,
   styles,
   locale,
-  palette,
 }) => {
+  const palette = usePalette();
   if (!sources || sources.length === 0) return null;
 
   const selectedName = selected

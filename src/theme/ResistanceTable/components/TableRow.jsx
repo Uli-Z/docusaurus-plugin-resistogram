@@ -1,6 +1,7 @@
 import React from 'react';
 import { TableCell } from './TableCell';
 import { hl } from '../utils';
+import { usePalette } from '../palette';
 
 export const TableRow = React.memo(
   ({
@@ -16,11 +17,11 @@ export const TableRow = React.memo(
     onShowTooltip,
     onHideTooltip,
     styles,
-    palette,
     colorMode,
     sourceId2ShortName,
     t,
   }) => {
+    const palette = usePalette();
     const highlight = hoveredRow === rowIndex;
     const abxCol = { whiteSpace: 'nowrap', width: '1%' };
 
@@ -71,7 +72,6 @@ export const TableRow = React.memo(
             onShowTooltip={onShowTooltip}
             onHideTooltip={onHideTooltip}
             styles={styles}
-            palette={palette}
             colorMode={colorMode}
             sourceId2ShortName={sourceId2ShortName}
             t={t}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { hl } from '../utils';
+import { usePalette } from '../palette';
 
 export const TableHeaderCell = React.memo(
   ({
@@ -12,8 +13,8 @@ export const TableHeaderCell = React.memo(
     onShowTooltip,
     onHideTooltip,
     styles,
-    palette,
   }) => {
+    const palette = usePalette();
     const highlight = hoveredCol === colIndex;
 
     const handleMouseEnter = (event) => {

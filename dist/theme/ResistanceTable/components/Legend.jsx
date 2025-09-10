@@ -1,10 +1,12 @@
 import React from 'react';
+import { usePalette } from '../palette';
 
 // Mock types
 // Helper function to remove type annotations for JS conversion
 const identity = (props) => props;
 
-export const Legend = ({ cols, displayMode, styles, palette }) => {
+export const Legend = ({ cols, displayMode, styles }) => {
+  const palette = usePalette();
   if (displayMode === 'full') return null;
 
   return (
