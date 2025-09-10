@@ -16,6 +16,7 @@ export const TableRow = React.memo(
     onShowTooltip,
     onHideTooltip,
     styles,
+    palette,
     colorMode,
     sourceId2ShortName,
     t,
@@ -45,6 +46,7 @@ export const TableRow = React.memo(
         <td
           style={{
             ...abxCol,
+            color: palette?.text,
             ...(highlight ? hl : {}),
             cursor: displayMode !== 'full' ? 'help' : 'default',
           }}

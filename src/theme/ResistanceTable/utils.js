@@ -47,7 +47,7 @@ export const pctToColor = (pct, colorMode) => {
 export const cellStyle = (pct, colorMode) => ({
   backgroundColor:
     pct === undefined
-      ? 'var(--rt-empty-cell-background)'
+      ? (colorMode === 'dark' ? '#2a2a2a' : '#f2f2f2')
       : pctToColor(pct, colorMode),
 });
 

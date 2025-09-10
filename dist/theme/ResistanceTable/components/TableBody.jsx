@@ -15,6 +15,7 @@ export const TableBody = ({
   styles,
   colorMode,
   sourceId2ShortName,
+  palette,
   t,
 }) => {
   return (
@@ -35,6 +36,7 @@ export const TableBody = ({
           onHideTooltip={onHideTooltip}
           styles={styles}
           colorMode={colorMode}
+          palette={palette}
           sourceId2ShortName={sourceId2ShortName}
           t={t}
         />

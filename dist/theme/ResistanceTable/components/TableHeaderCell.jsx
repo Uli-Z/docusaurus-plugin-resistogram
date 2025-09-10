@@ -12,6 +12,7 @@ export const TableHeaderCell = React.memo(
     onShowTooltip,
     onHideTooltip,
     styles,
+    palette,
   }) => {
     const highlight = hoveredCol === colIndex;
 
@@ -42,6 +43,7 @@ export const TableHeaderCell = React.memo(
       <th
         style={{
           cursor: displayMode !== 'full' ? 'help' : 'default',
+          color: palette?.text,
           ...(highlight ? hl : {}),
         }}
         onMouseEnter={handleMouseEnter}

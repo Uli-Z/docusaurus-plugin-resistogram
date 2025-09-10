@@ -10,6 +10,7 @@ export const TableHeader = ({
   onShowTooltip,
   onHideTooltip,
   styles,
+  palette,
 }) => {
   const abxCol = { whiteSpace: 'nowrap', width: '1%' };
 
@@ -29,6 +30,7 @@ export const TableHeader = ({
             onShowTooltip={onShowTooltip}
             onHideTooltip={onHideTooltip}
             styles={styles}
+            palette={palette}
           />
         ))}
       </tr>

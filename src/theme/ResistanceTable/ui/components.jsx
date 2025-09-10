@@ -12,6 +12,7 @@ const SourceMenuItem = ({
   level = 0,
   isLast = false,
   locale,
+  palette,
 }) => {
   const hasChildren = source.children && source.children.length > 0;
   const isSelected = selected?.id === source.id;
@@ -30,6 +31,8 @@ const SourceMenuItem = ({
         onSelect={() => onSelect(source)}
         role="menuitemradio"
         aria-checked={isSelected}
+      
+        style={{ color: palette?.text }}
       >
         <span className={styles.sourceSwitcherItemInner}>
           <span className={styles.sourceSwitcherItemLabel}>{source[`name_${locale}`] || source.name_en || source.id}</span>
@@ -61,6 +64,7 @@ export const SourceSwitcher = ({
   onSelect,
   styles,
   locale,
+  palette,
 }) => {
   if (!sources || sources.length === 0) return null;
 
@@ -71,15 +75,35 @@ export const SourceSwitcher = ({
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button className={styles.sourceSwitcherTrigger}>
+        <button
+          className={styles.sourceSwitcherTrigger}
+          style={{
+            backgroundColor: palette?.subtleBg,
+            border: `1px solid ${palette?.border}`,
+            color: palette?.text,
+            borderBottomColor: palette?.background,
+          }}
+        >
           <span className={styles.sourceSwitcherTriggerInner}>
             <span>{selectedName}</span>
-            <ChevronDownIcon className={styles.sourceSwitcherChevron} aria-hidden />
+            <ChevronDownIcon
+              className={styles.sourceSwitcherChevron}
+              aria-hidden
+              style={{ color: palette?.mutedText ?? palette?.sourceInfoText }}
+            />
           </span>
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content className={styles.sourceSwitcherContent} sideOffset={-1} align="start">
+        <DropdownMenu.Content
+          className={styles.sourceSwitcherContent}
+          sideOffset={-1}
+          align="start"
+          style={{
+            backgroundColor: palette?.background,
+            border: `1px solid ${palette?.border}`,
+          }}
+        >
           <DropdownMenu.RadioGroup value={selected?.id}>
             {sources.map((s, index) => (
               <SourceMenuItem
@@ -90,6 +114,7 @@ export const SourceSwitcher = ({
                 styles={styles}
                 isLast={index === sources.length - 1}
                 locale={locale}
+                palette={palette}
               />
             ))}
           </DropdownMenu.RadioGroup>

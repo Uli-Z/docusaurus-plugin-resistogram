@@ -108,6 +108,37 @@ export default function ResistanceTable(props) {
 
   const { colorMode } = useColorMode();
 
+  const palette = useMemo(() => {
+    if (colorMode === 'dark') {
+      return {
+        border: '#444',
+        background: '#1e1e1e',
+        text: '#eee',
+        subtleBg: '#252525',
+        subtleBgHover: '#333',
+        sourceInfoBg: '#333',
+        sourceInfoText: '#bbb',
+        emptyCellBg: '#2a2a2a',
+        tooltipBg: 'rgba(200, 200, 200, 0.9)',
+        tooltipText: '#000',
+        overlay: 'rgba(30, 30, 30, 0.7)',
+      };
+    }
+    return {
+      border: '#ddd',
+      background: '#fff',
+      text: '#333',
+      subtleBg: '#f9f9f9',
+      subtleBgHover: '#f0f0f0',
+      sourceInfoBg: '#f0f0f0',
+      sourceInfoText: '#666',
+      emptyCellBg: '#f2f2f2',
+      tooltipBg: 'rgba(60, 60, 60, 0.9)',
+      tooltipText: '#fff',
+      overlay: 'rgba(255, 255, 255, 0.7)',
+    };
+  }, [colorMode]);
+
   const [showEmpty, setShowEmpty] = useState(showEmptyProp === 'true');
   const [display, setDisplay] = useState('full');
   const [hover, setHover] = useState({ row: null, col: null });
@@ -383,13 +414,18 @@ export default function ResistanceTable(props) {
     const isStale = isLoading && data && data.length > 0;
     const isInitialLoad = isLoading && (!data || data.length === 0);
 
-    if (isInitialLoad) return <div className={styles.placeholder}><div className={styles.spinner} />{t('loading')}</div>;
+    if (isInitialLoad) return (
+      <div className={styles.placeholder} style={{ color: palette.sourceInfoText }}>
+        <div className={styles.spinner} style={{ border: `3px solid ${palette.subtleBgHover}`, borderTopColor: palette.text }} />
+        {t('loading')}
+      </div>
+    );
     if (error) return <div className={styles.error}>{t('generationFailed')}: {error.message}</div>;
 
     const unresolvedIds = [...unresolvedAbx, ...unresolvedOrg];
     if (unresolvedIds.length > 0) {
       return (
-        <div className={styles.noDataContainer}>
+        <div className={styles.noDataContainer} style={{ backgroundColor: palette.subtleBg, color: palette.text }}>
           <p><strong>{t('resistanceTable')}</strong></p>
           <p>{t('unrecognizedIdentifiers')}:</p>
           <ul className={styles.noDataList}>
@@ -406,7 +442,7 @@ export default function ResistanceTable(props) {
       const orgNames = organismIds.map(idToName);
 
       return (
-        <div className={styles.noDataContainer}>
+        <div className={styles.noDataContainer} style={{ backgroundColor: palette.subtleBg, color: palette.text }}>
           <p><strong>{t('resistanceTable')}</strong></p>
           <p>{t('noDataForCombination')}:</p>
           {abxNames.length > 0 && (
@@ -424,13 +460,17 @@ export default function ResistanceTable(props) {
 
     return (
       <>
-        {isStale && <div className={styles.tableOverlay}><div className={styles.spinner} /></div>}
-        <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
-          <TableHeader {...{ cols, displayMode: display, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles }} />
-          <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode, sourceId2ShortName, t }} />
+        {isStale && (
+          <div className={styles.tableOverlay} style={{ backgroundColor: palette.overlay }}>
+            <div className={styles.spinner} style={{ border: `3px solid ${palette.subtleBgHover}`, borderTopColor: palette.text }} />
+          </div>
+        )}
+        <table ref={tableRef} className={styles.resistanceTable} style={{ borderCollapse: 'separate', borderSpacing: 0, color: palette.text }}>
+          <TableHeader {...{ cols, displayMode: display, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, palette }} />
+          <TableBody {...{ data, cols, displayMode: display, rowsAreAbx, hoveredRow: hover.row, hoveredCol: hover.col, onSetHover: handleSetHover, onClearHover: handleClearHover, onShowTooltip: showTooltip, onHideTooltip: hideTooltip, styles, colorMode, sourceId2ShortName, palette, t }} />
         </table>
-        <Legend {...{ cols, displayMode: display, styles }} />
-        <div className={styles.sourceInfo}>
+        <Legend {...{ cols, displayMode: display, styles, palette }} />
+        <div className={styles.sourceInfo} style={{ backgroundColor: palette.sourceInfoBg, borderTop: `1px solid ${palette.border}`, color: palette.sourceInfoText }}>
           {renderHiddenInfo()}
           {sourceChain.length > 0 && (
             <>
@@ -464,7 +504,7 @@ export default function ResistanceTable(props) {
       <div ref={containerRef} style={{ minHeight: '150px' }}>
         <div className={styles.rootContainer}>
           {hierarchicalSources.length > 0 && (
-            <SourceSwitcher {...{ sources: hierarchicalSources, selected: selectedSource, onSelect: setSelectedSource, styles, locale }} />
+            <SourceSwitcher {...{ sources: hierarchicalSources, selected: selectedSource, onSelect: setSelectedSource, styles, locale, palette }} />
           )}
           <div className={styles.tableContainer}>
             {renderContent()}
@@ -475,9 +515,15 @@ export default function ResistanceTable(props) {
       <RadixTooltip.Root open={tooltipOpen} onOpenChange={setTooltipOpen}>
         <RadixTooltip.Trigger asChild><VirtualTrigger ref={virtualTriggerRef} /></RadixTooltip.Trigger>
         <RadixTooltip.Portal>
-          <RadixTooltip.Content side="top" align="center" sideOffset={5} className={styles.tooltipContent}>
+          <RadixTooltip.Content
+            side="top"
+            align="center"
+            sideOffset={5}
+            className={styles.tooltipContent}
+            style={{ backgroundColor: palette.tooltipBg, color: palette.tooltipText }}
+          >
             {tooltipContent}
-            <RadixTooltip.Arrow width={8} height={4} className={styles.tooltipArrow} />
+            <RadixTooltip.Arrow width={8} height={4} className={styles.tooltipArrow} style={{ fill: palette.tooltipBg }} />
           </RadixTooltip.Content>
         </RadixTooltip.Portal>
       </RadixTooltip.Root>

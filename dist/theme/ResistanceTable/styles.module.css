@@ -1,33 +1,54 @@
 /* ============================================================================
-   General Styles
+   CSS Variables (Global)
    ============================================================================ */
 
-:root {
+:global(:root) {
+  /* Core colors */
   --rt-border-color: #ddd;
   --rt-background-color: #fff;
   --rt-text-color: #333;
+
+  /* Component backgrounds */
   --rt-subtle-background: #f9f9f9;
   --rt-subtle-background-hover: #f0f0f0;
   --rt-source-info-background: #f0f0f0;
   --rt-source-info-text: #666;
   --rt-empty-cell-background: #f2f2f2;
+
+  /* Tooltip */
   --rt-tooltip-background: rgba(60, 60, 60, 0.9);
   --rt-tooltip-text: #fff;
+
+  /* Shape */
   --rt-tab-radius: 5px;
 }
 
-[data-theme='dark'] {
+/*
+  Use a generic [data-theme='dark'] selector so variables apply
+  regardless of whether Docusaurus sets the attribute on html or body.
+  Wrap in :global so CSS-module scoping doesn't interfere in prod builds.
+*/
+:global([data-theme='dark']) {
+  /* Core colors */
   --rt-border-color: #444;
   --rt-background-color: #1e1e1e;
   --rt-text-color: #eee;
+
+  /* Component backgrounds */
   --rt-subtle-background: #252525;
   --rt-subtle-background-hover: #333;
   --rt-source-info-background: #333;
   --rt-source-info-text: #bbb;
   --rt-empty-cell-background: #2a2a2a;
+
+  /* Tooltip */
   --rt-tooltip-background: rgba(200, 200, 200, 0.9);
   --rt-tooltip-text: #000;
 }
+
+/* ============================================================================
+   General Styles
+   ============================================================================ */
 
 .error {
   color: red;
